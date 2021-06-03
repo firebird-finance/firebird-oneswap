@@ -1256,24 +1256,9 @@ abstract contract ERC20Burnable is Context, ERC20 {
     }
 }
 
-interface IAllowlist {
-    function getPoolAccountLimit(address poolAddress)
-        external
-        view
-        returns (uint256);
-
-    function getPoolCap(address poolAddress) external view returns (uint256);
-
-    function verifyAddress(address account, bytes32[] calldata merkleProof)
-        external
-        returns (bool);
-}
-
 interface ISwap {
     // pool data view functions
     function getA() external view returns (uint256);
-
-    function getAllowlist() external view returns (IAllowlist);
 
     function getToken(uint8 index) external view returns (IERC20);
 
@@ -1281,9 +1266,23 @@ interface ISwap {
 
     function getTokenBalance(uint8 index) external view returns (uint256);
 
+    function getTokenLength() external view returns (uint256);
+
     function getVirtualPrice() external view returns (uint256);
 
-    function isGuarded() external view returns (bool);
+    function swapStorage()
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            address
+        );
 
     // min return calculation functions
     function calculateSwap(
@@ -1292,20 +1291,9 @@ interface ISwap {
         uint256 dx
     ) external view returns (uint256);
 
-    function calculateTokenAmount(uint256[] calldata amounts, bool deposit)
-        external
-        view
-        returns (uint256);
+    function calculateRemoveLiquidity(uint256 amount) external view returns (uint256[] memory);
 
-    function calculateRemoveLiquidity(uint256 amount)
-        external
-        view
-        returns (uint256[] memory);
-
-    function calculateRemoveLiquidityOneToken(
-        uint256 tokenAmount,
-        uint8 tokenIndex
-    ) external view returns (uint256 availableTokenAmount);
+    function calculateRemoveLiquidityOneToken(uint256 tokenAmount, uint8 tokenIndex) external view returns (uint256 availableTokenAmount);
 
     // state modifying functions
     function swap(
@@ -1319,8 +1307,7 @@ interface ISwap {
     function addLiquidity(
         uint256[] calldata amounts,
         uint256 minToMint,
-        uint256 deadline,
-        bytes32[] calldata merkleProof
+        uint256 deadline
     ) external returns (uint256);
 
     function removeLiquidity(
@@ -1343,8 +1330,21 @@ interface ISwap {
     ) external returns (uint256);
 
     // withdraw fee update function
-    function updateUserWithdrawFee(address recipient, uint256 transferAmount)
-        external;
+    function updateUserWithdrawFee(address recipient, uint256 transferAmount) external;
+
+    function calculateRemoveLiquidity(address account, uint256 amount) external view returns (uint256[] memory);
+
+    function calculateTokenAmount(
+        address account,
+        uint256[] calldata amounts,
+        bool deposit
+    ) external view returns (uint256);
+
+    function calculateRemoveLiquidityOneToken(
+        address account,
+        uint256 tokenAmount,
+        uint8 tokenIndex
+    ) external view returns (uint256 availableTokenAmount);
 }
 
 /**
@@ -1358,9 +1358,6 @@ contract LPToken is ERC20Burnable, Ownable {
     // Address of the swap contract that owns this LP token. When a user adds liquidity to the swap contract,
     // they receive a proportionate amount of this LPToken.
     ISwap public swap;
-
-    // Maps user account to total number of LPToken minted by them. Used to limit minting during guarded release phase
-    mapping(address => uint256) public mintedAmounts;
 
     /**
      * @notice Deploys LPToken contract with given name, symbol, and decimals
@@ -1379,44 +1376,13 @@ contract LPToken is ERC20Burnable, Ownable {
     }
 
     /**
-     * @notice Mints the given amount of LPToken to the recipient. During the guarded release phase, the total supply
-     * and the maximum number of the tokens that a single account can mint are limited.
+     * @notice Mints the given amount of LPToken to the recipient.
      * @dev only owner can call this mint function
      * @param recipient address of account to receive the tokens
      * @param amount amount of tokens to mint
-     * @param merkleProof the bytes32 array data that is used to prove recipient's address exists in the merkle tree
-     * stored in the allowlist contract. If the pool is not guarded, this parameter is ignored.
      */
-    function mint(
-        address recipient,
-        uint256 amount,
-        bytes32[] calldata merkleProof
-    ) external onlyOwner {
+    function mint(address recipient, uint256 amount) external onlyOwner {
         require(amount != 0, "amount == 0");
-
-        // If the pool is in the guarded launch phase, the following checks are done to restrict deposits.
-        //   1. Check if the given merkleProof corresponds to the recipient's address in the merkle tree stored in the
-        //      allowlist contract. If the account has been already verified, merkleProof is ignored.
-        //   2. Limit the total number of this LPToken minted to recipient as defined by the allowlist contract.
-        //   3. Limit the total supply of this LPToken as defined by the allowlist contract.
-        if (swap.isGuarded()) {
-            IAllowlist allowlist = swap.getAllowlist();
-            require(
-                allowlist.verifyAddress(recipient, merkleProof),
-                "Invalid merkle proof"
-            );
-            uint256 totalMinted = mintedAmounts[recipient].add(amount);
-            require(
-                totalMinted <= allowlist.getPoolAccountLimit(address(swap)),
-                "account deposit limit"
-            );
-            require(
-                totalSupply().add(amount) <=
-                    allowlist.getPoolCap(address(swap)),
-                "pool total supply limit"
-            );
-            mintedAmounts[recipient] = totalMinted;
-        }
         _mint(recipient, amount);
     }
 
@@ -1490,48 +1456,16 @@ library SwapUtils {
 
     /*** EVENTS ***/
 
-    event TokenSwap(
-        address indexed buyer,
-        uint256 tokensSold,
-        uint256 tokensBought,
-        uint128 soldId,
-        uint128 boughtId
-    );
-    event AddLiquidity(
-        address indexed provider,
-        uint256[] tokenAmounts,
-        uint256[] fees,
-        uint256 invariant,
-        uint256 lpTokenSupply
-    );
-    event RemoveLiquidity(
-        address indexed provider,
-        uint256[] tokenAmounts,
-        uint256 lpTokenSupply
-    );
-    event RemoveLiquidityOne(
-        address indexed provider,
-        uint256 lpTokenAmount,
-        uint256 lpTokenSupply,
-        uint256 boughtId,
-        uint256 tokensBought
-    );
-    event RemoveLiquidityImbalance(
-        address indexed provider,
-        uint256[] tokenAmounts,
-        uint256[] fees,
-        uint256 invariant,
-        uint256 lpTokenSupply
-    );
+    event TokenSwap(address indexed buyer, uint256 tokensSold, uint256 tokensBought, uint128 soldId, uint128 boughtId);
+    event AddLiquidity(address indexed provider, uint256[] tokenAmounts, uint256[] fees, uint256 invariant, uint256 lpTokenSupply);
+    event RemoveLiquidity(address indexed provider, uint256[] tokenAmounts, uint256 lpTokenSupply);
+    event RemoveLiquidityOne(address indexed provider, uint256 lpTokenAmount, uint256 lpTokenSupply, uint256 boughtId, uint256 tokensBought);
+    event RemoveLiquidityImbalance(address indexed provider, uint256[] tokenAmounts, uint256[] fees, uint256 invariant, uint256 lpTokenSupply);
+    event CollectProtocolFee(address token, uint256 amount);
     event NewAdminFee(uint256 newAdminFee);
     event NewSwapFee(uint256 newSwapFee);
     event NewWithdrawFee(uint256 newWithdrawFee);
-    event RampA(
-        uint256 oldA,
-        uint256 newA,
-        uint256 initialTime,
-        uint256 futureTime
-    );
+    event RampA(uint256 oldA, uint256 newA, uint256 initialTime, uint256 futureTime);
     event StopRampA(uint256 currentA, uint256 time);
 
     struct Swap {
@@ -2267,51 +2201,30 @@ library SwapUtils {
         uint256 dx,
         uint256 minDy
     ) external returns (uint256) {
-        require(
-            dx <= self.pooledTokens[tokenIndexFrom].balanceOf(msg.sender),
-            "Cannot swap more than you own"
-        );
+        IERC20 poolTokenFrom = self.pooledTokens[tokenIndexFrom];
+        require(dx <= poolTokenFrom.balanceOf(msg.sender), "Cannot swap more than you own");
 
         // Transfer tokens first to see if a fee was charged on transfer
-        uint256 beforeBalance =
-            self.pooledTokens[tokenIndexFrom].balanceOf(address(this));
-        self.pooledTokens[tokenIndexFrom].safeTransferFrom(
-            msg.sender,
-            address(this),
-            dx
-        );
+        uint256 transferredDx;
+        {
+            uint256 beforeBalance = poolTokenFrom.balanceOf(address(this));
+            poolTokenFrom.safeTransferFrom(msg.sender, address(this), dx);
 
-        // Use the actual transferred amount for AMM math
-        uint256 transferredDx =
-            self.pooledTokens[tokenIndexFrom].balanceOf(address(this)).sub(
-                beforeBalance
-            );
+            // Use the actual transferred amount for AMM math
+            transferredDx = poolTokenFrom.balanceOf(address(this)).sub(beforeBalance);
+        }
 
-        (uint256 dy, uint256 dyFee) =
-            _calculateSwap(self, tokenIndexFrom, tokenIndexTo, transferredDx);
+        (uint256 dy, uint256 dyFee) = _calculateSwap(self, tokenIndexFrom, tokenIndexTo, transferredDx);
         require(dy >= minDy, "Swap didn't result in min tokens");
 
-        uint256 dyAdminFee =
-            dyFee.mul(self.adminFee).div(FEE_DENOMINATOR).div(
-                self.tokenPrecisionMultipliers[tokenIndexTo]
-            );
+        uint256 dyAdminFee = dyFee.mul(self.adminFee).div(FEE_DENOMINATOR).div(self.tokenPrecisionMultipliers[tokenIndexTo]);
 
-        self.balances[tokenIndexFrom] = self.balances[tokenIndexFrom].add(
-            transferredDx
-        );
-        self.balances[tokenIndexTo] = self.balances[tokenIndexTo].sub(dy).sub(
-            dyAdminFee
-        );
+        self.balances[tokenIndexFrom] = self.balances[tokenIndexFrom].add(transferredDx);
+        self.balances[tokenIndexTo] = self.balances[tokenIndexTo].sub(dy).sub(dyAdminFee);
 
         self.pooledTokens[tokenIndexTo].safeTransfer(msg.sender, dy);
 
-        emit TokenSwap(
-            msg.sender,
-            transferredDx,
-            dy,
-            tokenIndexFrom,
-            tokenIndexTo
-        );
+        emit TokenSwap(msg.sender, transferredDx, dy, tokenIndexFrom, tokenIndexTo);
 
         return dy;
     }
@@ -2322,36 +2235,28 @@ library SwapUtils {
      * @param amounts the amounts of each token to add, in their native precision
      * @param minToMint the minimum LP tokens adding this amount of liquidity
      * should mint, otherwise revert. Handy for front-running mitigation
-     * @param merkleProof bytes32 array that will be used to prove the existence of the caller's address in the list of
-     * allowed addresses. If the pool is not in the guarded launch phase, this parameter will be ignored.
      * @return amount of LP token user received
      */
     function addLiquidity(
         Swap storage self,
         uint256[] memory amounts,
-        uint256 minToMint,
-        bytes32[] calldata merkleProof
+        uint256 minToMint
     ) external returns (uint256) {
-        require(
-            amounts.length == self.pooledTokens.length,
-            "Amounts must match pooled tokens"
-        );
+        require(amounts.length == self.pooledTokens.length, "Amounts must match pooled tokens");
 
         uint256[] memory fees = new uint256[](self.pooledTokens.length);
 
         // current state
         AddLiquidityInfo memory v = AddLiquidityInfo(0, 0, 0, 0);
 
-        if (self.lpToken.totalSupply() != 0) {
+        LPToken lpToken = self.lpToken;
+        if (lpToken.totalSupply() != 0) {
             v.d0 = getD(self);
         }
         uint256[] memory newBalances = self.balances;
 
         for (uint256 i = 0; i < self.pooledTokens.length; i++) {
-            require(
-                self.lpToken.totalSupply() != 0 || amounts[i] > 0,
-                "Must supply all tokens in pool"
-            );
+            require(lpToken.totalSupply() != 0 || amounts[i] > 0, "Must supply all tokens in pool");
 
             // Transfer tokens first to see if a fee was charged on transfer
             if (amounts[i] != 0) {
@@ -2379,7 +2284,7 @@ library SwapUtils {
 
         // updated to reflect fees and calculate the user's LP tokens
         v.d2 = v.d1;
-        if (self.lpToken.totalSupply() != 0) {
+        if (lpToken.totalSupply() != 0) {
             uint256 feePerToken = _feePerToken(self);
             for (uint256 i = 0; i < self.pooledTokens.length; i++) {
                 uint256 idealBalance = v.d1.mul(self.balances[i]).div(v.d0);
@@ -2398,24 +2303,18 @@ library SwapUtils {
         }
 
         uint256 toMint;
-        if (self.lpToken.totalSupply() == 0) {
+        if (lpToken.totalSupply() == 0) {
             toMint = v.d1;
         } else {
-            toMint = v.d2.sub(v.d0).mul(self.lpToken.totalSupply()).div(v.d0);
+            toMint = v.d2.sub(v.d0).mul(lpToken.totalSupply()).div(v.d0);
         }
 
         require(toMint >= minToMint, "Couldn't mint min requested");
 
         // mint the user's LP tokens
-        self.lpToken.mint(msg.sender, toMint, merkleProof);
+        lpToken.mint(msg.sender, toMint);
 
-        emit AddLiquidity(
-            msg.sender,
-            amounts,
-            fees,
-            v.d1,
-            self.lpToken.totalSupply()
-        );
+        emit AddLiquidity(msg.sender, amounts, fees, v.d1, lpToken.totalSupply());
 
         return toMint;
     }
@@ -2480,11 +2379,9 @@ library SwapUtils {
         uint256 amount,
         uint256[] calldata minAmounts
     ) external returns (uint256[] memory) {
-        require(amount <= self.lpToken.balanceOf(msg.sender), ">LP.balanceOf");
-        require(
-            minAmounts.length == self.pooledTokens.length,
-            "minAmounts must match poolTokens"
-        );
+        LPToken lpToken = self.lpToken;
+        require(amount <= lpToken.balanceOf(msg.sender), ">LP.balanceOf");
+        require(minAmounts.length == self.pooledTokens.length, "minAmounts must match poolTokens");
 
         uint256[] memory amounts =
             _calculateRemoveLiquidity(self, msg.sender, amount);
@@ -2495,9 +2392,9 @@ library SwapUtils {
             self.pooledTokens[i].safeTransfer(msg.sender, amounts[i]);
         }
 
-        self.lpToken.burnFrom(msg.sender, amount);
+        lpToken.burnFrom(msg.sender, amount);
 
-        emit RemoveLiquidity(msg.sender, amounts, self.lpToken.totalSupply());
+        emit RemoveLiquidity(msg.sender, amounts, lpToken.totalSupply());
 
         return amounts;
     }
@@ -2516,12 +2413,10 @@ library SwapUtils {
         uint8 tokenIndex,
         uint256 minAmount
     ) external returns (uint256) {
-        uint256 totalSupply = self.lpToken.totalSupply();
+        LPToken lpToken = self.lpToken;
+        uint256 totalSupply = lpToken.totalSupply();
         uint256 numTokens = self.pooledTokens.length;
-        require(
-            tokenAmount <= self.lpToken.balanceOf(msg.sender),
-            ">LP.balanceOf"
-        );
+        require(tokenAmount <= lpToken.balanceOf(msg.sender), ">LP.balanceOf");
         require(tokenIndex < numTokens, "Token not found");
 
         uint256 dyFee;
@@ -2536,10 +2431,8 @@ library SwapUtils {
 
         require(dy >= minAmount, "dy < minAmount");
 
-        self.balances[tokenIndex] = self.balances[tokenIndex].sub(
-            dy.add(dyFee.mul(self.adminFee).div(FEE_DENOMINATOR))
-        );
-        self.lpToken.burnFrom(msg.sender, tokenAmount);
+        self.balances[tokenIndex] = self.balances[tokenIndex].sub(dy.add(dyFee.mul(self.adminFee).div(FEE_DENOMINATOR)));
+        lpToken.burnFrom(msg.sender, tokenAmount);
         self.pooledTokens[tokenIndex].safeTransfer(msg.sender, dy);
 
         emit RemoveLiquidityOne(
@@ -2646,6 +2539,7 @@ library SwapUtils {
                 token.balanceOf(address(this)).sub(self.balances[i]);
             if (balance != 0) {
                 token.safeTransfer(to, balance);
+                emit CollectProtocolFee(address(token), balance);
             }
         }
     }
@@ -2762,189 +2656,43 @@ library SwapUtils {
     }
 }
 
-/**
- * @dev These functions deal with verification of Merkle trees (hash trees),
- */
-library MerkleProof {
-    /**
-     * @dev Returns true if a `leaf` can be proved to be a part of a Merkle tree
-     * defined by `root`. For this, a `proof` must be provided, containing
-     * sibling hashes on the branch from the leaf to the root of the tree. Each
-     * pair of leaves and each pair of pre-images are assumed to be sorted.
-     */
-    function verify(
-        bytes32[] memory proof,
-        bytes32 root,
-        bytes32 leaf
-    ) internal pure returns (bool) {
-        bytes32 computedHash = leaf;
+interface IStableSwapFactory {
+    event SwapCreated(IERC20[] pooledTokens, address indexed swap, uint256 length);
+    event SetFeeTo(address indexed feeTo);
+    event SetFeeToken(address indexed token);
+    event SetFeeAmount(uint256 indexed amount);
 
-        for (uint256 i = 0; i < proof.length; i++) {
-            bytes32 proofElement = proof[i];
+    function feeTo() external view returns (address);
 
-            if (computedHash <= proofElement) {
-                // Hash(current computed hash + current element of the proof)
-                computedHash = keccak256(
-                    abi.encodePacked(computedHash, proofElement)
-                );
-            } else {
-                // Hash(current element of the proof + current computed hash)
-                computedHash = keccak256(
-                    abi.encodePacked(proofElement, computedHash)
-                );
-            }
-        }
+    function feeToSetter() external view returns (address);
 
-        // Check if the computed hash (root) is equal to the provided root
-        return computedHash == root;
-    }
-}
+    function allPools(uint256) external view returns (address pool);
 
-/**
- * @title Allowlist
- * @notice This contract is a registry holding information about how much each swap contract should
- * contain upto. Swap.sol will rely on this contract to determine whether the pool cap is reached and
- * also whether a user's deposit limit is reached.
- */
-contract Allowlist is Ownable, IAllowlist {
-    using SafeMath for uint256;
+    function isPool(address) external view returns (bool);
 
-    // Represents the root node of merkle tree containing a list of eligible addresses
-    bytes32 public merkleRoot;
-    // Maps pool address -> maximum total supply
-    mapping(address => uint256) private poolCaps;
-    // Maps pool address -> maximum amount of pool token mintable per account
-    mapping(address => uint256) private accountLimits;
-    // Maps account address -> boolean value indicating whether it has been checked and verified against the merkle tree
-    mapping(address => bool) private verified;
+    function allPoolsLength() external view returns (uint256);
 
-    event PoolCap(address indexed poolAddress, uint256 poolCap);
-    event PoolAccountLimit(address indexed poolAddress, uint256 accountLimit);
-    event NewMerkleRoot(bytes32 merkleRoot);
+    function isTimelock(address) external view returns (bool);
 
-    /**
-     * @notice Creates this contract and sets the PoolCap of 0x0 with uint256(0x54dd1e) for
-     * crude checking whether an address holds this contract.
-     * @param merkleRoot_ bytes32 that represent a merkle root node. This is generated off chain with the list of
-     * qualifying addresses.
-     */
-    constructor(bytes32 merkleRoot_) public {
-        merkleRoot = merkleRoot_;
+    function createPool(
+        IERC20[] memory _pooledTokens,
+        uint8[] memory decimals,
+        string memory lpTokenName,
+        string memory lpTokenSymbol,
+        uint256 _a,
+        uint256 _fee,
+        uint256 _adminFee,
+        uint256 _withdrawFee,
+        uint256 delayTimeLock
+    ) external returns (address pool);
 
-        // This value will be used as a way of crude checking whether an address holds this Allowlist contract
-        // Value 0x54dd1e has no inherent meaning other than it is arbitrary value that checks for
-        // user error.
-        poolCaps[address(0x0)] = uint256(0x54dd1e);
-        emit PoolCap(address(0x0), uint256(0x54dd1e));
-        emit NewMerkleRoot(merkleRoot_);
-    }
+    function setFeeTo(address) external;
 
-    /**
-     * @notice Returns the max mintable amount of the lp token per account in given pool address.
-     * @param poolAddress address of the pool
-     * @return max mintable amount of the lp token per account
-     */
-    function getPoolAccountLimit(address poolAddress)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return accountLimits[poolAddress];
-    }
+    function setFeeToSetter(address) external;
 
-    /**
-     * @notice Returns the maximum total supply of the pool token for the given pool address.
-     * @param poolAddress address of the pool
-     */
-    function getPoolCap(address poolAddress)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return poolCaps[poolAddress];
-    }
+    function setFeeToken(address _token) external;
 
-    /**
-     * @notice Returns true if the given account's existence has been verified against any of the past or
-     * the present merkle tree. Note that if it has been verified in the past, this function will return true
-     * even if the current merkle tree does not contain the account.
-     * @param account the address to check if it has been verified
-     * @return a boolean value representing whether the account has been verified in the past or the present merkle tree
-     */
-    function isAccountVerified(address account) external view returns (bool) {
-        return verified[account];
-    }
-
-    /**
-     * @notice Checks the existence of keccak256(account) as a node in the merkle tree inferred by the merkle root node
-     * stored in this contract. Pools should use this function to check if the given address qualifies for depositing.
-     * If the given account has already been verified with the correct merkleProof, this function will return true when
-     * merkleProof is empty. The verified status will be overwritten if the previously verified user calls this function
-     * with an incorrect merkleProof.
-     * @param account address to confirm its existence in the merkle tree
-     * @param merkleProof data that is used to prove the existence of given parameters. This is generated
-     * during the creation of the merkle tree. Users should retrieve this data off-chain.
-     * @return a boolean value that corresponds to whether the address with the proof has been verified in the past
-     * or if they exist in the current merkle tree.
-     */
-    function verifyAddress(address account, bytes32[] calldata merkleProof)
-        external
-        override
-        returns (bool)
-    {
-        if (merkleProof.length != 0) {
-            // Verify the account exists in the merkle tree via the MerkleProof library
-            bytes32 node = keccak256(abi.encodePacked(account));
-            if (MerkleProof.verify(merkleProof, merkleRoot, node)) {
-                verified[account] = true;
-                return true;
-            }
-        }
-        return verified[account];
-    }
-
-    // ADMIN FUNCTIONS
-
-    /**
-     * @notice Sets the account limit of allowed deposit amounts for the given pool
-     * @param poolAddress address of the pool
-     * @param accountLimit the max number of the pool token a single user can mint
-     */
-    function setPoolAccountLimit(address poolAddress, uint256 accountLimit)
-        external
-        onlyOwner
-    {
-        require(poolAddress != address(0x0), "0x0 is not a pool address");
-        accountLimits[poolAddress] = accountLimit;
-        emit PoolAccountLimit(poolAddress, accountLimit);
-    }
-
-    /**
-     * @notice Sets the max total supply of LPToken for the given pool address
-     * @param poolAddress address of the pool
-     * @param poolCap the max total supply of the pool token
-     */
-    function setPoolCap(address poolAddress, uint256 poolCap)
-        external
-        onlyOwner
-    {
-        require(poolAddress != address(0x0), "0x0 is not a pool address");
-        poolCaps[poolAddress] = poolCap;
-        emit PoolCap(poolAddress, poolCap);
-    }
-
-    /**
-     * @notice Updates the merkle root that is stored in this contract. This can only be called by
-     * the owner. If more addresses are added to the list, a new merkle tree and a merkle root node should be generated,
-     * and merkleRoot should be updated accordingly.
-     * @param merkleRoot_ a new merkle root node that contains a list of deposit allowed addresses
-     */
-    function updateMerkleRoot(bytes32 merkleRoot_) external onlyOwner {
-        merkleRoot = merkleRoot_;
-        emit NewMerkleRoot(merkleRoot_);
-    }
+    function setFeeAmount(uint256 _token) external;
 }
 
 /**
@@ -2974,66 +2722,29 @@ contract Swap is OwnerPausable, ReentrancyGuard {
     // access this data, this contract uses SwapUtils library. For more details, see SwapUtils.sol
     SwapUtils.Swap public swapStorage;
 
-    // Address to allowlist contract that holds information about maximum totaly supply of lp tokens
-    // and maximum mintable amount per user address. As this is immutable, this will become a constant
-    // after initialization.
-    IAllowlist private immutable allowlist;
-
-    // Boolean value that notates whether this pool is guarded or not. When isGuarded is true,
-    // addLiquidity function will be restricted by limits defined in allowlist contract.
-    bool private guarded = true;
-
     // Maps token address to an index in the pool. Used to prevent duplicate tokens in the pool.
     // getTokenIndex function also relies on this mapping to retrieve token index.
     mapping(address => uint8) private tokenIndexes;
+    address public factory;
+    bool private _initialized = false;
 
     /*** EVENTS ***/
 
     // events replicated from SwapUtils to make the ABI easier for dumb
     // clients
-    event TokenSwap(
-        address indexed buyer,
-        uint256 tokensSold,
-        uint256 tokensBought,
-        uint128 soldId,
-        uint128 boughtId
-    );
-    event AddLiquidity(
-        address indexed provider,
-        uint256[] tokenAmounts,
-        uint256[] fees,
-        uint256 invariant,
-        uint256 lpTokenSupply
-    );
-    event RemoveLiquidity(
-        address indexed provider,
-        uint256[] tokenAmounts,
-        uint256 lpTokenSupply
-    );
-    event RemoveLiquidityOne(
-        address indexed provider,
-        uint256 lpTokenAmount,
-        uint256 lpTokenSupply,
-        uint256 boughtId,
-        uint256 tokensBought
-    );
-    event RemoveLiquidityImbalance(
-        address indexed provider,
-        uint256[] tokenAmounts,
-        uint256[] fees,
-        uint256 invariant,
-        uint256 lpTokenSupply
-    );
+    event TokenSwap(address indexed buyer, uint256 tokensSold, uint256 tokensBought, uint128 soldId, uint128 boughtId);
+    event AddLiquidity(address indexed provider, uint256[] tokenAmounts, uint256[] fees, uint256 invariant, uint256 lpTokenSupply);
+    event RemoveLiquidity(address indexed provider, uint256[] tokenAmounts, uint256 lpTokenSupply);
+    event RemoveLiquidityOne(address indexed provider, uint256 lpTokenAmount, uint256 lpTokenSupply, uint256 boughtId, uint256 tokensBought);
+    event RemoveLiquidityImbalance(address indexed provider, uint256[] tokenAmounts, uint256[] fees, uint256 invariant, uint256 lpTokenSupply);
+    event CollectProtocolFee(address token, uint256 amount);
     event NewAdminFee(uint256 newAdminFee);
     event NewSwapFee(uint256 newSwapFee);
     event NewWithdrawFee(uint256 newWithdrawFee);
-    event RampA(
-        uint256 oldA,
-        uint256 newA,
-        uint256 initialTime,
-        uint256 futureTime
-    );
+    event RampA(uint256 oldA, uint256 newA, uint256 initialTime, uint256 futureTime);
     event StopRampA(uint256 currentA, uint256 time);
+
+    constructor() public OwnerPausable() ReentrancyGuard() {}
 
     /**
      * @notice Deploys this Swap contract with given parameters as default
@@ -3051,9 +2762,8 @@ contract Swap is OwnerPausable, ReentrancyGuard {
      * @param _fee default swap fee to be initialized with
      * @param _adminFee default adminFee to be initialized with
      * @param _withdrawFee default withdrawFee to be initialized with
-     * @param _allowlist address of allowlist contract for guarded launch
      */
-    constructor(
+    function initialize(
         IERC20[] memory _pooledTokens,
         uint8[] memory decimals,
         string memory lpTokenName,
@@ -3062,8 +2772,9 @@ contract Swap is OwnerPausable, ReentrancyGuard {
         uint256 _fee,
         uint256 _adminFee,
         uint256 _withdrawFee,
-        IAllowlist _allowlist
-    ) public OwnerPausable() ReentrancyGuard() {
+        address _factory
+    ) public {
+        require(_initialized == false, "Swap: Initialize must be false.");
         // Check _pooledTokens and precisions parameter
         require(_pooledTokens.length > 1, "_pooledTokens.length <= 1");
         require(_pooledTokens.length <= 32, "_pooledTokens.length > 32");
@@ -3099,21 +2810,11 @@ contract Swap is OwnerPausable, ReentrancyGuard {
             tokenIndexes[address(_pooledTokens[i])] = i;
         }
 
-        // Check _a, _fee, _adminFee, _withdrawFee, _allowlist parameters
+        // Check _a, _fee, _adminFee, _withdrawFee parameters
         require(_a < SwapUtils.MAX_A, "_a exceeds maximum");
-        require(_fee < SwapUtils.MAX_SWAP_FEE, "_fee exceeds maximum");
-        require(
-            _adminFee < SwapUtils.MAX_ADMIN_FEE,
-            "_adminFee exceeds maximum"
-        );
-        require(
-            _withdrawFee < SwapUtils.MAX_WITHDRAW_FEE,
-            "_withdrawFee exceeds maximum"
-        );
-        require(
-            _allowlist.getPoolCap(address(0x0)) == uint256(0x54dd1e),
-            "Allowlist check failed"
-        );
+        require(_fee <= SwapUtils.MAX_SWAP_FEE, "_fee exceeds maximum");
+        require(_adminFee <= SwapUtils.MAX_ADMIN_FEE, "_adminFee exceeds maximum");
+        require(_withdrawFee <= SwapUtils.MAX_WITHDRAW_FEE, "_withdrawFee exceeds maximum");
 
         // Initialize swapStorage struct
         swapStorage.lpToken = new LPToken(
@@ -3133,8 +2834,8 @@ contract Swap is OwnerPausable, ReentrancyGuard {
         swapStorage.defaultWithdrawFee = _withdrawFee;
 
         // Initialize variables related to guarding the initial deposits
-        allowlist = _allowlist;
-        guarded = true;
+        factory = _factory;
+        _initialized = true;
     }
 
     /*** MODIFIERS ***/
@@ -3178,6 +2879,10 @@ contract Swap is OwnerPausable, ReentrancyGuard {
         return swapStorage.pooledTokens[index];
     }
 
+    function getTokenLength() public view returns (uint256) {
+        return swapStorage.pooledTokens.length;
+    }
+
     /**
      * @notice Return the index of the given token address. Reverts if no matching
      * token is found.
@@ -3191,14 +2896,6 @@ contract Swap is OwnerPausable, ReentrancyGuard {
             "Token does not exist"
         );
         return index;
-    }
-
-    /**
-     * @notice Reads and returns the address of the allowlist that is set during deployment of this contract
-     * @return the address of the allowlist contract casted to the IAllowlist interface
-     */
-    function getAllowlist() external view returns (IAllowlist) {
-        return allowlist;
     }
 
     /**
@@ -3329,6 +3026,14 @@ contract Swap is OwnerPausable, ReentrancyGuard {
         return swapStorage.getAdminBalance(index);
     }
 
+    function getAdminBalances() external view returns (uint256[] memory adminBalances) {
+        uint256 length = getTokenLength();
+        adminBalances = new uint256[](length);
+        for (uint256 i = 0; i < length; i++) {
+            adminBalances[i] = swapStorage.getAdminBalance(i);
+        }
+    }
+
     /*** STATE MODIFYING FUNCTIONS ***/
 
     /**
@@ -3356,32 +3061,19 @@ contract Swap is OwnerPausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Add liquidity to the pool with given amounts during guarded launch phase. Only users
-     * with valid address and proof can successfully call this function. When this function is called
-     * after the guarded release phase is over, the merkleProof is ignored.
+     * @notice Add liquidity to the pool with given amounts.
      * @param amounts the amounts of each token to add, in their native precision
      * @param minToMint the minimum LP tokens adding this amount of liquidity
      * should mint, otherwise revert. Handy for front-running mitigation
      * @param deadline latest timestamp to accept this transaction
-     * @param merkleProof data generated when constructing the allowlist merkle tree. Users can
-     * get this data off chain. Even if the address is in the allowlist, users must include
-     * a valid proof for this call to succeed. If the pool is no longer in the guarded release phase,
-     * this parameter is ignored.
      * @return amount of LP token user minted and received
      */
     function addLiquidity(
         uint256[] calldata amounts,
         uint256 minToMint,
-        uint256 deadline,
-        bytes32[] calldata merkleProof
-    )
-        external
-        nonReentrant
-        whenNotPaused
-        deadlineCheck(deadline)
-        returns (uint256)
-    {
-        return swapStorage.addLiquidity(amounts, minToMint, merkleProof);
+        uint256 deadline
+    ) external nonReentrant whenNotPaused deadlineCheck(deadline) returns (uint256) {
+        return swapStorage.addLiquidity(amounts, minToMint);
     }
 
     /**
@@ -3476,10 +3168,13 @@ contract Swap is OwnerPausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Withdraw all admin fees to the contract owner
+     * @notice Withdraw all admin fees to the fee collector
      */
-    function withdrawAdminFees() external onlyOwner {
-        swapStorage.withdrawAdminFees(owner());
+    function withdrawAdminFees() external {
+        address feeTo = IStableSwapFactory(factory).feeTo();
+        if (feeTo != address(0)) {
+            swapStorage.withdrawAdminFees(feeTo);
+        }
     }
 
     /**
@@ -3507,6 +3202,26 @@ contract Swap is OwnerPausable, ReentrancyGuard {
         swapStorage.setDefaultWithdrawFee(newWithdrawFee);
     }
 
+    function setFactory(address _factory) external onlyOwner {
+        factory = _factory;
+    }
+
+    function getPoolTokens() external view returns (IERC20[] memory) {
+        return swapStorage.pooledTokens;
+    }
+
+    function getTokenPrecisionMultipliers() external view returns (uint256[] memory) {
+        return swapStorage.tokenPrecisionMultipliers;
+    }
+
+    function getBalances() external view returns (uint256[] memory) {
+        return swapStorage.balances;
+    }
+
+    function getWithdrawFeeMultiplier(address user) external view returns (uint256) {
+        return swapStorage.withdrawFeeMultiplier[user];
+    }
+
     /**
      * @notice Start ramping up or down A parameter towards given futureA and futureTime
      * Checks if the change is too rapid, and commits the new A value only when it falls under
@@ -3523,20 +3238,5 @@ contract Swap is OwnerPausable, ReentrancyGuard {
      */
     function stopRampA() external onlyOwner {
         swapStorage.stopRampA();
-    }
-
-    /**
-     * @notice Disables the guarded launch phase, removing any limits on deposit amounts and addresses
-     */
-    function disableGuard() external onlyOwner {
-        guarded = false;
-    }
-
-    /**
-     * @notice Reads and returns current guarded status of the pool
-     * @return guarded_ boolean value indicating whether the deposits should be guarded
-     */
-    function isGuarded() external view returns (bool) {
-        return guarded;
     }
 }

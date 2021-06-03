@@ -751,24 +751,9 @@ abstract contract Ownable is Context {
     }
 }
 
-interface IAllowlist {
-    function getPoolAccountLimit(address poolAddress)
-        external
-        view
-        returns (uint256);
-
-    function getPoolCap(address poolAddress) external view returns (uint256);
-
-    function verifyAddress(address account, bytes32[] calldata merkleProof)
-        external
-        returns (bool);
-}
-
 interface ISwap {
     // pool data view functions
     function getA() external view returns (uint256);
-
-    function getAllowlist() external view returns (IAllowlist);
 
     function getToken(uint8 index) external view returns (IERC20);
 
@@ -776,9 +761,23 @@ interface ISwap {
 
     function getTokenBalance(uint8 index) external view returns (uint256);
 
+    function getTokenLength() external view returns (uint256);
+
     function getVirtualPrice() external view returns (uint256);
 
-    function isGuarded() external view returns (bool);
+    function swapStorage()
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            address
+        );
 
     // min return calculation functions
     function calculateSwap(
@@ -787,20 +786,9 @@ interface ISwap {
         uint256 dx
     ) external view returns (uint256);
 
-    function calculateTokenAmount(uint256[] calldata amounts, bool deposit)
-        external
-        view
-        returns (uint256);
+    function calculateRemoveLiquidity(uint256 amount) external view returns (uint256[] memory);
 
-    function calculateRemoveLiquidity(uint256 amount)
-        external
-        view
-        returns (uint256[] memory);
-
-    function calculateRemoveLiquidityOneToken(
-        uint256 tokenAmount,
-        uint8 tokenIndex
-    ) external view returns (uint256 availableTokenAmount);
+    function calculateRemoveLiquidityOneToken(uint256 tokenAmount, uint8 tokenIndex) external view returns (uint256 availableTokenAmount);
 
     // state modifying functions
     function swap(
@@ -814,8 +802,7 @@ interface ISwap {
     function addLiquidity(
         uint256[] calldata amounts,
         uint256 minToMint,
-        uint256 deadline,
-        bytes32[] calldata merkleProof
+        uint256 deadline
     ) external returns (uint256);
 
     function removeLiquidity(
@@ -838,8 +825,21 @@ interface ISwap {
     ) external returns (uint256);
 
     // withdraw fee update function
-    function updateUserWithdrawFee(address recipient, uint256 transferAmount)
-        external;
+    function updateUserWithdrawFee(address recipient, uint256 transferAmount) external;
+
+    function calculateRemoveLiquidity(address account, uint256 amount) external view returns (uint256[] memory);
+
+    function calculateTokenAmount(
+        address account,
+        uint256[] calldata amounts,
+        bool deposit
+    ) external view returns (uint256);
+
+    function calculateRemoveLiquidityOneToken(
+        address account,
+        uint256 tokenAmount,
+        uint8 tokenIndex
+    ) external view returns (uint256 availableTokenAmount);
 }
 
 /**
@@ -853,9 +853,6 @@ contract LPToken is ERC20Burnable, Ownable {
     // Address of the swap contract that owns this LP token. When a user adds liquidity to the swap contract,
     // they receive a proportionate amount of this LPToken.
     ISwap public swap;
-
-    // Maps user account to total number of LPToken minted by them. Used to limit minting during guarded release phase
-    mapping(address => uint256) public mintedAmounts;
 
     /**
      * @notice Deploys LPToken contract with given name, symbol, and decimals
@@ -874,44 +871,13 @@ contract LPToken is ERC20Burnable, Ownable {
     }
 
     /**
-     * @notice Mints the given amount of LPToken to the recipient. During the guarded release phase, the total supply
-     * and the maximum number of the tokens that a single account can mint are limited.
+     * @notice Mints the given amount of LPToken to the recipient.
      * @dev only owner can call this mint function
      * @param recipient address of account to receive the tokens
      * @param amount amount of tokens to mint
-     * @param merkleProof the bytes32 array data that is used to prove recipient's address exists in the merkle tree
-     * stored in the allowlist contract. If the pool is not guarded, this parameter is ignored.
      */
-    function mint(
-        address recipient,
-        uint256 amount,
-        bytes32[] calldata merkleProof
-    ) external onlyOwner {
+    function mint(address recipient, uint256 amount) external onlyOwner {
         require(amount != 0, "amount == 0");
-
-        // If the pool is in the guarded launch phase, the following checks are done to restrict deposits.
-        //   1. Check if the given merkleProof corresponds to the recipient's address in the merkle tree stored in the
-        //      allowlist contract. If the account has been already verified, merkleProof is ignored.
-        //   2. Limit the total number of this LPToken minted to recipient as defined by the allowlist contract.
-        //   3. Limit the total supply of this LPToken as defined by the allowlist contract.
-        if (swap.isGuarded()) {
-            IAllowlist allowlist = swap.getAllowlist();
-            require(
-                allowlist.verifyAddress(recipient, merkleProof),
-                "Invalid merkle proof"
-            );
-            uint256 totalMinted = mintedAmounts[recipient].add(amount);
-            require(
-                totalMinted <= allowlist.getPoolAccountLimit(address(swap)),
-                "account deposit limit"
-            );
-            require(
-                totalSupply().add(amount) <=
-                    allowlist.getPoolCap(address(swap)),
-                "pool total supply limit"
-            );
-            mintedAmounts[recipient] = totalMinted;
-        }
         _mint(recipient, amount);
     }
 

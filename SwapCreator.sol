@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.6.12;
+pragma solidity =0.6.12;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
@@ -17,6 +17,62 @@ pragma solidity 0.6.12;
  */
 library SafeMath {
     /**
+     * @dev Returns the addition of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryAdd(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        uint256 c = a + b;
+        if (c < a) return (false, 0);
+        return (true, c);
+    }
+
+    /**
+     * @dev Returns the substraction of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function trySub(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        if (b > a) return (false, 0);
+        return (true, a - b);
+    }
+
+    /**
+     * @dev Returns the multiplication of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryMul(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
+        // benefit is lost if 'b' is also tested.
+        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
+        if (a == 0) return (true, 0);
+        uint256 c = a * b;
+        if (c / a != b) return (false, 0);
+        return (true, c);
+    }
+
+    /**
+     * @dev Returns the division of two unsigned integers, with a division by zero flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryDiv(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        if (b == 0) return (false, 0);
+        return (true, a / b);
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers, with a division by zero flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryMod(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        if (b == 0) return (false, 0);
+        return (true, a % b);
+    }
+
+    /**
      * @dev Returns the addition of two unsigned integers, reverting on
      * overflow.
      *
@@ -29,7 +85,6 @@ library SafeMath {
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
         require(c >= a, "SafeMath: addition overflow");
-
         return c;
     }
 
@@ -44,28 +99,8 @@ library SafeMath {
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
+        require(b <= a, "SafeMath: subtraction overflow");
+        return a - b;
     }
 
     /**
@@ -79,21 +114,14 @@ library SafeMath {
      * - Multiplication cannot overflow.
      */
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
+        if (a == 0) return 0;
         uint256 c = a * b;
         require(c / a == b, "SafeMath: multiplication overflow");
-
         return c;
     }
 
     /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
+     * @dev Returns the integer division of two unsigned integers, reverting on
      * division by zero. The result is rounded towards zero.
      *
      * Counterpart to Solidity's `/` operator. Note: this function uses a
@@ -105,12 +133,55 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
+        require(b > 0, "SafeMath: division by zero");
+        return a / b;
     }
 
     /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     * reverting when dividing by zero.
+     *
+     * Counterpart to Solidity's `%` operator. This function uses a `revert`
+     * opcode (which leaves remaining gas untouched) while Solidity uses an
+     * invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     *
+     * - The divisor cannot be zero.
+     */
+    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b > 0, "SafeMath: modulo by zero");
+        return a % b;
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
+     * overflow (when the result is negative).
+     *
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {trySub}.
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     *
+     * - Subtraction cannot overflow.
+     */
+    function sub(
+        uint256 a,
+        uint256 b,
+        string memory errorMessage
+    ) internal pure returns (uint256) {
+        require(b <= a, errorMessage);
+        return a - b;
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers, reverting with custom message on
      * division by zero. The result is rounded towards zero.
+     *
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {tryDiv}.
      *
      * Counterpart to Solidity's `/` operator. Note: this function uses a
      * `revert` opcode (which leaves remaining gas untouched) while Solidity
@@ -126,31 +197,15 @@ library SafeMath {
         string memory errorMessage
     ) internal pure returns (uint256) {
         require(b > 0, errorMessage);
-        uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-
-        return c;
+        return a / b;
     }
 
     /**
      * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts when dividing by zero.
+     * reverting with custom message when dividing by zero.
      *
-     * Counterpart to Solidity's `%` operator. This function uses a `revert`
-     * opcode (which leaves remaining gas untouched) while Solidity uses an
-     * invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SafeMath: modulo by zero");
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts with custom message when dividing by zero.
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {tryMod}.
      *
      * Counterpart to Solidity's `%` operator. This function uses a `revert`
      * opcode (which leaves remaining gas untouched) while Solidity uses an
@@ -165,7 +220,7 @@ library SafeMath {
         uint256 b,
         string memory errorMessage
     ) internal pure returns (uint256) {
-        require(b != 0, errorMessage);
+        require(b > 0, errorMessage);
         return a % b;
     }
 }
@@ -191,9 +246,7 @@ interface IERC20 {
      *
      * Emits a {Transfer} event.
      */
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
+    function transfer(address recipient, uint256 amount) external returns (bool);
 
     /**
      * @dev Returns the remaining number of tokens that `spender` will be
@@ -202,10 +255,7 @@ interface IERC20 {
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
+    function allowance(address owner, address spender) external view returns (uint256);
 
     /**
      * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -250,11 +300,7 @@ interface IERC20 {
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}. `value` is the new allowance.
      */
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
 /**
@@ -308,17 +354,11 @@ library Address {
      * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].
      */
     function sendValue(address payable recipient, uint256 amount) internal {
-        require(
-            address(this).balance >= amount,
-            "Address: insufficient balance"
-        );
+        require(address(this).balance >= amount, "Address: insufficient balance");
 
         // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
         (bool success, ) = recipient.call{value: amount}("");
-        require(
-            success,
-            "Address: unable to send value, recipient may have reverted"
-        );
+        require(success, "Address: unable to send value, recipient may have reverted");
     }
 
     /**
@@ -339,10 +379,7 @@ library Address {
      *
      * _Available since v3.1._
      */
-    function functionCall(address target, bytes memory data)
-        internal
-        returns (bytes memory)
-    {
+    function functionCall(address target, bytes memory data) internal returns (bytes memory) {
         return functionCall(target, data, "Address: low-level call failed");
     }
 
@@ -376,13 +413,7 @@ library Address {
         bytes memory data,
         uint256 value
     ) internal returns (bytes memory) {
-        return
-            functionCallWithValue(
-                target,
-                data,
-                value,
-                "Address: low-level call with value failed"
-            );
+        return functionCallWithValue(target, data, value, "Address: low-level call with value failed");
     }
 
     /**
@@ -397,15 +428,11 @@ library Address {
         uint256 value,
         string memory errorMessage
     ) internal returns (bytes memory) {
-        require(
-            address(this).balance >= value,
-            "Address: insufficient balance for call"
-        );
+        require(address(this).balance >= value, "Address: insufficient balance for call");
         require(isContract(target), "Address: call to non-contract");
 
         // solhint-disable-next-line avoid-low-level-calls
-        (bool success, bytes memory returndata) =
-            target.call{value: value}(data);
+        (bool success, bytes memory returndata) = target.call{value: value}(data);
         return _verifyCallResult(success, returndata, errorMessage);
     }
 
@@ -415,17 +442,8 @@ library Address {
      *
      * _Available since v3.3._
      */
-    function functionStaticCall(address target, bytes memory data)
-        internal
-        view
-        returns (bytes memory)
-    {
-        return
-            functionStaticCall(
-                target,
-                data,
-                "Address: low-level static call failed"
-            );
+    function functionStaticCall(address target, bytes memory data) internal view returns (bytes memory) {
+        return functionStaticCall(target, data, "Address: low-level static call failed");
     }
 
     /**
@@ -443,6 +461,34 @@ library Address {
 
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, bytes memory returndata) = target.staticcall(data);
+        return _verifyCallResult(success, returndata, errorMessage);
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],
+     * but performing a delegate call.
+     *
+     * _Available since v3.4._
+     */
+    function functionDelegateCall(address target, bytes memory data) internal returns (bytes memory) {
+        return functionDelegateCall(target, data, "Address: low-level delegate call failed");
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],
+     * but performing a delegate call.
+     *
+     * _Available since v3.4._
+     */
+    function functionDelegateCall(
+        address target,
+        bytes memory data,
+        string memory errorMessage
+    ) internal returns (bytes memory) {
+        require(isContract(target), "Address: delegate call to non-contract");
+
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, bytes memory returndata) = target.delegatecall(data);
         return _verifyCallResult(success, returndata, errorMessage);
     }
 
@@ -488,10 +534,7 @@ library SafeERC20 {
         address to,
         uint256 value
     ) internal {
-        _callOptionalReturn(
-            token,
-            abi.encodeWithSelector(token.transfer.selector, to, value)
-        );
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
     }
 
     function safeTransferFrom(
@@ -500,10 +543,7 @@ library SafeERC20 {
         address to,
         uint256 value
     ) internal {
-        _callOptionalReturn(
-            token,
-            abi.encodeWithSelector(token.transferFrom.selector, from, to, value)
-        );
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
     }
 
     /**
@@ -522,14 +562,8 @@ library SafeERC20 {
         // or when resetting it to zero. To increase and decrease it, use
         // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'
         // solhint-disable-next-line max-line-length
-        require(
-            (value == 0) || (token.allowance(address(this), spender) == 0),
-            "SafeERC20: approve from non-zero to non-zero allowance"
-        );
-        _callOptionalReturn(
-            token,
-            abi.encodeWithSelector(token.approve.selector, spender, value)
-        );
+        require((value == 0) || (token.allowance(address(this), spender) == 0), "SafeERC20: approve from non-zero to non-zero allowance");
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
     }
 
     function safeIncreaseAllowance(
@@ -537,16 +571,8 @@ library SafeERC20 {
         address spender,
         uint256 value
     ) internal {
-        uint256 newAllowance =
-            token.allowance(address(this), spender).add(value);
-        _callOptionalReturn(
-            token,
-            abi.encodeWithSelector(
-                token.approve.selector,
-                spender,
-                newAllowance
-            )
-        );
+        uint256 newAllowance = token.allowance(address(this), spender).add(value);
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
     }
 
     function safeDecreaseAllowance(
@@ -554,19 +580,8 @@ library SafeERC20 {
         address spender,
         uint256 value
     ) internal {
-        uint256 newAllowance =
-            token.allowance(address(this), spender).sub(
-                value,
-                "SafeERC20: decreased allowance below zero"
-            );
-        _callOptionalReturn(
-            token,
-            abi.encodeWithSelector(
-                token.approve.selector,
-                spender,
-                newAllowance
-            )
-        );
+        uint256 newAllowance = token.allowance(address(this), spender).sub(value, "SafeERC20: decreased allowance below zero");
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
     }
 
     /**
@@ -580,19 +595,71 @@ library SafeERC20 {
         // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
         // the target address contains contract code and also asserts for success in the low-level call.
 
-        bytes memory returndata =
-            address(token).functionCall(
-                data,
-                "SafeERC20: low-level call failed"
-            );
+        bytes memory returndata = address(token).functionCall(data, "SafeERC20: low-level call failed");
         if (returndata.length > 0) {
             // Return data is optional
             // solhint-disable-next-line max-line-length
-            require(
-                abi.decode(returndata, (bool)),
-                "SafeERC20: ERC20 operation did not succeed"
-            );
+            require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
         }
+    }
+}
+
+/**
+ * @dev Contract module that helps prevent reentrant calls to a function.
+ *
+ * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
+ * available, which can be applied to functions to make sure there are no nested
+ * (reentrant) calls to them.
+ *
+ * Note that because there is a single `nonReentrant` guard, functions marked as
+ * `nonReentrant` may not call one another. This can be worked around by making
+ * those functions `private`, and then adding `external` `nonReentrant` entry
+ * points to them.
+ *
+ * TIP: If you would like to learn more about reentrancy and alternative ways
+ * to protect against it, check out our blog post
+ * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
+ */
+abstract contract ReentrancyGuard {
+    // Booleans are more expensive than uint256 or any type that takes up a full
+    // word because each write operation emits an extra SLOAD to first read the
+    // slot's contents, replace the bits taken up by the boolean, and then write
+    // back. This is the compiler's defense against contract upgrades and
+    // pointer aliasing, and it cannot be disabled.
+
+    // The values being non-zero value makes deployment a bit more expensive,
+    // but in exchange the refund on every call to nonReentrant will be lower in
+    // amount. Since refunds are capped to a percentage of the total
+    // transaction's gas, it is best to keep them low in cases like this one, to
+    // increase the likelihood of the full refund coming into effect.
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+
+    uint256 private _status;
+
+    constructor() internal {
+        _status = _NOT_ENTERED;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     * Calling a `nonReentrant` function from another `nonReentrant`
+     * function is not supported. It is possible to prevent this from happening
+     * by making the `nonReentrant` function external, and make it call a
+     * `private` function that does the actual work.
+     */
+    modifier nonReentrant() {
+        // On the first call to nonReentrant, _notEntered will be true
+        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+
+        // Any calls to nonReentrant after this point will fail
+        _status = _ENTERED;
+
+        _;
+
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _status = _NOT_ENTERED;
     }
 }
 
@@ -614,6 +681,177 @@ abstract contract Context {
     function _msgData() internal view virtual returns (bytes memory) {
         this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
         return msg.data;
+    }
+}
+
+/**
+ * @dev Contract module which provides a basic access control mechanism, where
+ * there is an account (an owner) that can be granted exclusive access to
+ * specific functions.
+ *
+ * By default, the owner account will be the one that deploys the contract. This
+ * can later be changed with {transferOwnership}.
+ *
+ * This module is used through inheritance. It will make available the modifier
+ * `onlyOwner`, which can be applied to your functions to restrict their use to
+ * the owner.
+ */
+abstract contract Ownable is Context {
+    address private _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    constructor() internal {
+        address msgSender = _msgSender();
+        _owner = msgSender;
+        emit OwnershipTransferred(address(0), msgSender);
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() public virtual onlyOwner {
+        emit OwnershipTransferred(_owner, address(0));
+        _owner = address(0);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        emit OwnershipTransferred(_owner, newOwner);
+        _owner = newOwner;
+    }
+}
+
+/**
+ * @dev Contract module which allows children to implement an emergency stop
+ * mechanism that can be triggered by an authorized account.
+ *
+ * This module is used through inheritance. It will make available the
+ * modifiers `whenNotPaused` and `whenPaused`, which can be applied to
+ * the functions of your contract. Note that they will not be pausable by
+ * simply including this module, only once the modifiers are put in place.
+ */
+abstract contract Pausable is Context {
+    /**
+     * @dev Emitted when the pause is triggered by `account`.
+     */
+    event Paused(address account);
+
+    /**
+     * @dev Emitted when the pause is lifted by `account`.
+     */
+    event Unpaused(address account);
+
+    bool private _paused;
+
+    /**
+     * @dev Initializes the contract in unpaused state.
+     */
+    constructor() internal {
+        _paused = false;
+    }
+
+    /**
+     * @dev Returns true if the contract is paused, and false otherwise.
+     */
+    function paused() public view virtual returns (bool) {
+        return _paused;
+    }
+
+    /**
+     * @dev Modifier to make a function callable only when the contract is not paused.
+     *
+     * Requirements:
+     *
+     * - The contract must not be paused.
+     */
+    modifier whenNotPaused() {
+        require(!paused(), "Pausable: paused");
+        _;
+    }
+
+    /**
+     * @dev Modifier to make a function callable only when the contract is paused.
+     *
+     * Requirements:
+     *
+     * - The contract must be paused.
+     */
+    modifier whenPaused() {
+        require(paused(), "Pausable: not paused");
+        _;
+    }
+
+    /**
+     * @dev Triggers stopped state.
+     *
+     * Requirements:
+     *
+     * - The contract must not be paused.
+     */
+    function _pause() internal virtual whenNotPaused {
+        _paused = true;
+        emit Paused(_msgSender());
+    }
+
+    /**
+     * @dev Returns to normal state.
+     *
+     * Requirements:
+     *
+     * - The contract must be paused.
+     */
+    function _unpause() internal virtual whenPaused {
+        _paused = false;
+        emit Unpaused(_msgSender());
+    }
+}
+
+/**
+ * @title OwnerPausable
+ * @notice An ownable contract allows the owner to pause and unpause the
+ * contract without a delay.
+ * @dev Only methods using the provided modifiers will be paused.
+ */
+contract OwnerPausable is Ownable, Pausable {
+    /**
+     * @notice Pause the contract. Revert if already paused.
+     */
+    function pause() external onlyOwner {
+        Pausable._pause();
+    }
+
+    /**
+     * @notice Unpause the contract. Revert if already unpaused.
+     */
+    function unpause() external onlyOwner {
+        Pausable._unpause();
     }
 }
 
@@ -672,7 +910,7 @@ contract ERC20 is Context, IERC20 {
     /**
      * @dev Returns the name of the token.
      */
-    function name() public view returns (string memory) {
+    function name() public view virtual returns (string memory) {
         return _name;
     }
 
@@ -680,7 +918,7 @@ contract ERC20 is Context, IERC20 {
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() public view returns (string memory) {
+    function symbol() public view virtual returns (string memory) {
         return _symbol;
     }
 
@@ -697,21 +935,21 @@ contract ERC20 is Context, IERC20 {
      * no way affects any of the arithmetic of the contract, including
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() public view returns (uint8) {
+    function decimals() public view virtual returns (uint8) {
         return _decimals;
     }
 
     /**
      * @dev See {IERC20-totalSupply}.
      */
-    function totalSupply() public view override returns (uint256) {
+    function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
 
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account) public view override returns (uint256) {
+    function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
     }
 
@@ -723,12 +961,7 @@ contract ERC20 is Context, IERC20 {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -736,13 +969,7 @@ contract ERC20 is Context, IERC20 {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function allowance(address owner, address spender) public view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -753,12 +980,7 @@ contract ERC20 is Context, IERC20 {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -782,14 +1004,7 @@ contract ERC20 is Context, IERC20 {
         uint256 amount
     ) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            _msgSender(),
-            _allowances[sender][_msgSender()].sub(
-                amount,
-                "ERC20: transfer amount exceeds allowance"
-            )
-        );
+        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
     }
 
@@ -805,16 +1020,8 @@ contract ERC20 is Context, IERC20 {
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        virtual
-        returns (bool)
-    {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender].add(addedValue)
-        );
+    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
         return true;
     }
 
@@ -832,19 +1039,8 @@ contract ERC20 is Context, IERC20 {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        virtual
-        returns (bool)
-    {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender].sub(
-                subtractedValue,
-                "ERC20: decreased allowance below zero"
-            )
-        );
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
         return true;
     }
 
@@ -872,10 +1068,7 @@ contract ERC20 is Context, IERC20 {
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        _balances[sender] = _balances[sender].sub(
-            amount,
-            "ERC20: transfer amount exceeds balance"
-        );
+        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
         _balances[recipient] = _balances[recipient].add(amount);
         emit Transfer(sender, recipient, amount);
     }
@@ -915,10 +1108,7 @@ contract ERC20 is Context, IERC20 {
 
         _beforeTokenTransfer(account, address(0), amount);
 
-        _balances[account] = _balances[account].sub(
-            amount,
-            "ERC20: burn amount exceeds balance"
-        );
+        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
         _totalSupply = _totalSupply.sub(amount);
         emit Transfer(account, address(0), amount);
     }
@@ -955,7 +1145,7 @@ contract ERC20 is Context, IERC20 {
      * applications that interact with token contracts will not expect
      * {decimals} to ever change, and may work incorrectly if it does.
      */
-    function _setupDecimals(uint8 decimals_) internal {
+    function _setupDecimals(uint8 decimals_) internal virtual {
         _decimals = decimals_;
     }
 
@@ -1009,84 +1199,10 @@ abstract contract ERC20Burnable is Context, ERC20 {
      * `amount`.
      */
     function burnFrom(address account, uint256 amount) public virtual {
-        uint256 decreasedAllowance =
-            allowance(account, _msgSender()).sub(
-                amount,
-                "ERC20: burn amount exceeds allowance"
-            );
+        uint256 decreasedAllowance = allowance(account, _msgSender()).sub(amount, "ERC20: burn amount exceeds allowance");
 
         _approve(account, _msgSender(), decreasedAllowance);
         _burn(account, amount);
-    }
-}
-
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-abstract contract Ownable is Context {
-    address private _owner;
-
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor() internal {
-        address msgSender = _msgSender();
-        _owner = msgSender;
-        emit OwnershipTransferred(address(0), msgSender);
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(_owner == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(
-            newOwner != address(0),
-            "Ownable: new owner is the zero address"
-        );
-        emit OwnershipTransferred(_owner, newOwner);
-        _owner = newOwner;
     }
 }
 
@@ -1433,16 +1549,10 @@ library SwapUtils {
             uint256 a0 = self.initialA; // initial A value when ramp is started
             if (a1 > a0) {
                 // a0 + (a1 - a0) * (block.timestamp - t0) / (t1 - t0)
-                return
-                    a0.add(
-                        a1.sub(a0).mul(block.timestamp.sub(t0)).div(t1.sub(t0))
-                    );
+                return a0.add(a1.sub(a0).mul(block.timestamp.sub(t0)).div(t1.sub(t0)));
             } else {
                 // a0 - (a0 - a1) * (block.timestamp - t0) / (t1 - t0)
-                return
-                    a0.sub(
-                        a0.sub(a1).mul(block.timestamp.sub(t0)).div(t1.sub(t0))
-                    );
+                return a0.sub(a0.sub(a1).mul(block.timestamp.sub(t0)).div(t1.sub(t0)));
             }
         } else {
             return a1;
@@ -1454,11 +1564,7 @@ library SwapUtils {
      * @param self Swap struct to read from
      * @return timestamp of last deposit
      */
-    function getDepositTimestamp(Swap storage self, address user)
-        external
-        view
-        returns (uint256)
-    {
+    function getDepositTimestamp(Swap storage self, address user) external view returns (uint256) {
         return self.depositTimestamp[user];
     }
 
@@ -1485,17 +1591,9 @@ library SwapUtils {
         // dy_0 (without fees)
         // dy, dy_0 - dy
 
-        uint256 dySwapFee =
-            _xp(self)[tokenIndex]
-                .sub(newY)
-                .div(self.tokenPrecisionMultipliers[tokenIndex])
-                .sub(dy);
+        uint256 dySwapFee = _xp(self)[tokenIndex].sub(newY).div(self.tokenPrecisionMultipliers[tokenIndex]).sub(dy);
 
-        dy = dy
-            .mul(
-            FEE_DENOMINATOR.sub(calculateCurrentWithdrawFee(self, account))
-        )
-            .div(FEE_DENOMINATOR);
+        dy = dy.mul(FEE_DENOMINATOR.sub(calculateCurrentWithdrawFee(self, account))).div(FEE_DENOMINATOR);
 
         return (dy, dySwapFee);
     }
@@ -1512,16 +1610,12 @@ library SwapUtils {
         uint8 tokenIndex,
         uint256 tokenAmount
     ) internal view returns (uint256, uint256) {
-        require(
-            tokenIndex < self.pooledTokens.length,
-            "Token index out of range"
-        );
+        require(tokenIndex < self.pooledTokens.length, "Token index out of range");
 
         // Get the current D, then solve the stableswap invariant
         // y_i for D - tokenAmount
         uint256[] memory xp = _xp(self);
-        CalculateWithdrawOneTokenDYInfo memory v =
-            CalculateWithdrawOneTokenDYInfo(0, 0, 0, 0, 0);
+        CalculateWithdrawOneTokenDYInfo memory v = CalculateWithdrawOneTokenDYInfo(0, 0, 0, 0, 0);
         v.preciseA = _getAPrecise(self);
         v.d0 = getD(xp, v.preciseA);
         v.d1 = v.d0.sub(tokenAmount.mul(v.d0).div(self.lpToken.totalSupply()));
@@ -1538,21 +1632,10 @@ library SwapUtils {
             // if i == tokenIndex, dxExpected = xp[i] * d1 / d0 - newY
             // else dxExpected = xp[i] - (xp[i] * d1 / d0)
             // xpReduced[i] -= dxExpected * fee / FEE_DENOMINATOR
-            xpReduced[i] = xpi.sub(
-                (
-                    (i == tokenIndex)
-                        ? xpi.mul(v.d1).div(v.d0).sub(v.newY)
-                        : xpi.sub(xpi.mul(v.d1).div(v.d0))
-                )
-                    .mul(v.feePerToken)
-                    .div(FEE_DENOMINATOR)
-            );
+            xpReduced[i] = xpi.sub(((i == tokenIndex) ? xpi.mul(v.d1).div(v.d0).sub(v.newY) : xpi.sub(xpi.mul(v.d1).div(v.d0))).mul(v.feePerToken).div(FEE_DENOMINATOR));
         }
 
-        uint256 dy =
-            xpReduced[tokenIndex].sub(
-                getYD(v.preciseA, tokenIndex, xpReduced, v.d1)
-            );
+        uint256 dy = xpReduced[tokenIndex].sub(getYD(v.preciseA, tokenIndex, xpReduced, v.d1));
         dy = dy.sub(1).div(self.tokenPrecisionMultipliers[tokenIndex]);
 
         return (dy, v.newY);
@@ -1621,11 +1704,7 @@ library SwapUtils {
      * See the StableSwap paper for details
      * @return the invariant, at the precision of the pool
      */
-    function getD(uint256[] memory xp, uint256 a)
-        internal
-        pure
-        returns (uint256)
-    {
+    function getD(uint256[] memory xp, uint256 a) internal pure returns (uint256) {
         uint256 numTokens = xp.length;
         uint256 s;
         for (uint256 i = 0; i < numTokens; i++) {
@@ -1648,11 +1727,7 @@ library SwapUtils {
                 // dP = dP * D * D * D * ... overflow!
             }
             prevD = d;
-            d = nA.mul(s).div(A_PRECISION).add(dP.mul(numTokens)).mul(d).div(
-                nA.sub(A_PRECISION).mul(d).div(A_PRECISION).add(
-                    numTokens.add(1).mul(dP)
-                )
-            );
+            d = nA.mul(s).div(A_PRECISION).add(dP.mul(numTokens)).mul(d).div(nA.sub(A_PRECISION).mul(d).div(A_PRECISION).add(numTokens.add(1).mul(dP)));
             if (d.within1(prevD)) {
                 return d;
             }
@@ -1686,15 +1761,9 @@ library SwapUtils {
      *
      * @return an array of amounts "scaled" to the pool's precision
      */
-    function _xp(
-        uint256[] memory balances,
-        uint256[] memory precisionMultipliers
-    ) internal pure returns (uint256[] memory) {
+    function _xp(uint256[] memory balances, uint256[] memory precisionMultipliers) internal pure returns (uint256[] memory) {
         uint256 numTokens = balances.length;
-        require(
-            numTokens == precisionMultipliers.length,
-            "Balances must match multipliers"
-        );
+        require(numTokens == precisionMultipliers.length, "Balances must match multipliers");
         uint256[] memory xp = new uint256[](numTokens);
         for (uint256 i = 0; i < numTokens; i++) {
             xp[i] = balances[i].mul(precisionMultipliers[i]);
@@ -1709,11 +1778,7 @@ library SwapUtils {
      * @return balances array "scaled" to the pool's precision, allowing
      * them to be more easily compared.
      */
-    function _xp(Swap storage self, uint256[] memory balances)
-        internal
-        view
-        returns (uint256[] memory)
-    {
+    function _xp(Swap storage self, uint256[] memory balances) internal view returns (uint256[] memory) {
         return _xp(balances, self.tokenPrecisionMultipliers);
     }
 
@@ -1732,16 +1797,11 @@ library SwapUtils {
      * @param self Swap struct to read from
      * @return the virtual price, scaled to precision of POOL_PRECISION_DECIMALS
      */
-    function getVirtualPrice(Swap storage self)
-        external
-        view
-        returns (uint256)
-    {
+    function getVirtualPrice(Swap storage self) external view returns (uint256) {
         uint256 d = getD(_xp(self), _getAPrecise(self));
         uint256 supply = self.lpToken.totalSupply();
         if (supply > 0) {
-            return
-                d.mul(10**uint256(ERC20(self.lpToken).decimals())).div(supply);
+            return d.mul(10**uint256(ERC20(self.lpToken).decimals())).div(supply);
         }
         return 0;
     }
@@ -1767,14 +1827,8 @@ library SwapUtils {
         uint256[] memory xp
     ) internal view returns (uint256) {
         uint256 numTokens = self.pooledTokens.length;
-        require(
-            tokenIndexFrom != tokenIndexTo,
-            "Can't compare token to itself"
-        );
-        require(
-            tokenIndexFrom < numTokens && tokenIndexTo < numTokens,
-            "Tokens must be in pool"
-        );
+        require(tokenIndexFrom != tokenIndexTo, "Can't compare token to itself");
+        require(tokenIndexFrom < numTokens && tokenIndexTo < numTokens, "Tokens must be in pool");
 
         uint256 a = _getAPrecise(self);
         uint256 d = getD(xp, a);
@@ -1852,14 +1906,8 @@ library SwapUtils {
         uint256 dx
     ) internal view returns (uint256 dy, uint256 dyFee) {
         uint256[] memory xp = _xp(self);
-        require(
-            tokenIndexFrom < xp.length && tokenIndexTo < xp.length,
-            "Token index out of range"
-        );
-        uint256 x =
-            dx.mul(self.tokenPrecisionMultipliers[tokenIndexFrom]).add(
-                xp[tokenIndexFrom]
-            );
+        require(tokenIndexFrom < xp.length && tokenIndexTo < xp.length, "Token index out of range");
+        uint256 x = dx.mul(self.tokenPrecisionMultipliers[tokenIndexFrom]).add(xp[tokenIndexFrom]);
         uint256 y = getY(self, tokenIndexFrom, tokenIndexTo, x, xp);
         dy = xp[tokenIndexTo].sub(y).sub(1);
         dyFee = dy.mul(self.swapFee).div(FEE_DENOMINATOR);
@@ -1892,19 +1940,12 @@ library SwapUtils {
         uint256 totalSupply = self.lpToken.totalSupply();
         require(amount <= totalSupply, "Cannot exceed total supply");
 
-        uint256 feeAdjustedAmount =
-            amount
-                .mul(
-                FEE_DENOMINATOR.sub(calculateCurrentWithdrawFee(self, account))
-            )
-                .div(FEE_DENOMINATOR);
+        uint256 feeAdjustedAmount = amount.mul(FEE_DENOMINATOR.sub(calculateCurrentWithdrawFee(self, account))).div(FEE_DENOMINATOR);
 
         uint256[] memory amounts = new uint256[](self.pooledTokens.length);
 
         for (uint256 i = 0; i < self.pooledTokens.length; i++) {
-            amounts[i] = self.balances[i].mul(feeAdjustedAmount).div(
-                totalSupply
-            );
+            amounts[i] = self.balances[i].mul(feeAdjustedAmount).div(totalSupply);
         }
         return amounts;
     }
@@ -1915,21 +1956,11 @@ library SwapUtils {
      * @param user address you want to calculate withdraw fee of
      * @return current withdraw fee of the user
      */
-    function calculateCurrentWithdrawFee(Swap storage self, address user)
-        public
-        view
-        returns (uint256)
-    {
+    function calculateCurrentWithdrawFee(Swap storage self, address user) public view returns (uint256) {
         uint256 endTime = self.depositTimestamp[user].add(4 weeks);
         if (endTime > block.timestamp) {
             uint256 timeLeftover = endTime.sub(block.timestamp);
-            return
-                self
-                    .defaultWithdrawFee
-                    .mul(self.withdrawFeeMultiplier[user])
-                    .mul(timeLeftover)
-                    .div(4 weeks)
-                    .div(FEE_DENOMINATOR);
+            return self.defaultWithdrawFee.mul(self.withdrawFeeMultiplier[user]).mul(timeLeftover).div(4 weeks).div(FEE_DENOMINATOR);
         }
         return 0;
     }
@@ -1966,10 +1997,7 @@ library SwapUtils {
             if (deposit) {
                 balances1[i] = balances1[i].add(amounts[i]);
             } else {
-                balances1[i] = balances1[i].sub(
-                    amounts[i],
-                    "Cannot withdraw more than available"
-                );
+                balances1[i] = balances1[i].sub(amounts[i], "Cannot withdraw more than available");
             }
         }
         uint256 d1 = getD(_xp(self, balances1), a);
@@ -1978,12 +2006,7 @@ library SwapUtils {
         if (deposit) {
             return d1.sub(d0).mul(totalSupply).div(d0);
         } else {
-            return
-                d0.sub(d1).mul(totalSupply).div(d0).mul(FEE_DENOMINATOR).div(
-                    FEE_DENOMINATOR.sub(
-                        calculateCurrentWithdrawFee(self, account)
-                    )
-                );
+            return d0.sub(d1).mul(totalSupply).div(d0).mul(FEE_DENOMINATOR).div(FEE_DENOMINATOR.sub(calculateCurrentWithdrawFee(self, account)));
         }
     }
 
@@ -1993,16 +2016,9 @@ library SwapUtils {
      * @param index Index of the pooled token
      * @return admin balance in the token's precision
      */
-    function getAdminBalance(Swap storage self, uint256 index)
-        external
-        view
-        returns (uint256)
-    {
+    function getAdminBalance(Swap storage self, uint256 index) external view returns (uint256) {
         require(index < self.pooledTokens.length, "Token index out of range");
-        return
-            self.pooledTokens[index].balanceOf(address(this)).sub(
-                self.balances[index]
-            );
+        return self.pooledTokens[index].balanceOf(address(this)).sub(self.balances[index]);
     }
 
     /**
@@ -2011,10 +2027,7 @@ library SwapUtils {
      * @param self Swap struct to read from
      */
     function _feePerToken(Swap storage self) internal view returns (uint256) {
-        return
-            self.swapFee.mul(self.pooledTokens.length).div(
-                self.pooledTokens.length.sub(1).mul(4)
-            );
+        return self.swapFee.mul(self.pooledTokens.length).div(self.pooledTokens.length.sub(1).mul(4));
     }
 
     /*** STATE MODIFYING FUNCTIONS ***/
@@ -2048,31 +2061,17 @@ library SwapUtils {
             transferredDx = poolTokenFrom.balanceOf(address(this)).sub(beforeBalance);
         }
 
-        (uint256 dy, uint256 dyFee) =
-            _calculateSwap(self, tokenIndexFrom, tokenIndexTo, transferredDx);
+        (uint256 dy, uint256 dyFee) = _calculateSwap(self, tokenIndexFrom, tokenIndexTo, transferredDx);
         require(dy >= minDy, "Swap didn't result in min tokens");
 
-        uint256 dyAdminFee =
-            dyFee.mul(self.adminFee).div(FEE_DENOMINATOR).div(
-                self.tokenPrecisionMultipliers[tokenIndexTo]
-            );
+        uint256 dyAdminFee = dyFee.mul(self.adminFee).div(FEE_DENOMINATOR).div(self.tokenPrecisionMultipliers[tokenIndexTo]);
 
-        self.balances[tokenIndexFrom] = self.balances[tokenIndexFrom].add(
-            transferredDx
-        );
-        self.balances[tokenIndexTo] = self.balances[tokenIndexTo].sub(dy).sub(
-            dyAdminFee
-        );
+        self.balances[tokenIndexFrom] = self.balances[tokenIndexFrom].add(transferredDx);
+        self.balances[tokenIndexTo] = self.balances[tokenIndexTo].sub(dy).sub(dyAdminFee);
 
         self.pooledTokens[tokenIndexTo].safeTransfer(msg.sender, dy);
 
-        emit TokenSwap(
-            msg.sender,
-            transferredDx,
-            dy,
-            tokenIndexFrom,
-            tokenIndexTo
-        );
+        emit TokenSwap(msg.sender, transferredDx, dy, tokenIndexFrom, tokenIndexTo);
 
         return dy;
     }
@@ -2108,18 +2107,11 @@ library SwapUtils {
 
             // Transfer tokens first to see if a fee was charged on transfer
             if (amounts[i] != 0) {
-                uint256 beforeBalance =
-                    self.pooledTokens[i].balanceOf(address(this));
-                self.pooledTokens[i].safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    amounts[i]
-                );
+                uint256 beforeBalance = self.pooledTokens[i].balanceOf(address(this));
+                self.pooledTokens[i].safeTransferFrom(msg.sender, address(this), amounts[i]);
 
                 // Update the amounts[] with actual transfer amount
-                amounts[i] = self.pooledTokens[i].balanceOf(address(this)).sub(
-                    beforeBalance
-                );
+                amounts[i] = self.pooledTokens[i].balanceOf(address(this)).sub(beforeBalance);
             }
 
             newBalances[i] = self.balances[i].add(amounts[i]);
@@ -2136,12 +2128,8 @@ library SwapUtils {
             uint256 feePerToken = _feePerToken(self);
             for (uint256 i = 0; i < self.pooledTokens.length; i++) {
                 uint256 idealBalance = v.d1.mul(self.balances[i]).div(v.d0);
-                fees[i] = feePerToken
-                    .mul(idealBalance.difference(newBalances[i]))
-                    .div(FEE_DENOMINATOR);
-                self.balances[i] = newBalances[i].sub(
-                    fees[i].mul(self.adminFee).div(FEE_DENOMINATOR)
-                );
+                fees[i] = feePerToken.mul(idealBalance.difference(newBalances[i])).div(FEE_DENOMINATOR);
+                self.balances[i] = newBalances[i].sub(fees[i].mul(self.adminFee).div(FEE_DENOMINATOR));
                 newBalances[i] = newBalances[i].sub(fees[i]);
             }
             v.d2 = getD(_xp(self, newBalances), v.preciseA);
@@ -2204,11 +2192,9 @@ library SwapUtils {
 
             // ((currentBalance * currentFee) + (toMint * defaultWithdrawFee)) * FEE_DENOMINATOR /
             // ((toMint + currentBalance) * defaultWithdrawFee)
-            self.withdrawFeeMultiplier[user] = currentBalance
-                .mul(currentFee)
-                .add(toMint.mul(self.defaultWithdrawFee))
-                .mul(FEE_DENOMINATOR)
-                .div(toMint.add(currentBalance).mul(self.defaultWithdrawFee));
+            self.withdrawFeeMultiplier[user] = currentBalance.mul(currentFee).add(toMint.mul(self.defaultWithdrawFee)).mul(FEE_DENOMINATOR).div(
+                toMint.add(currentBalance).mul(self.defaultWithdrawFee)
+            );
         }
         self.depositTimestamp[user] = block.timestamp;
     }
@@ -2269,12 +2255,7 @@ library SwapUtils {
         uint256 dyFee;
         uint256 dy;
 
-        (dy, dyFee) = calculateWithdrawOneToken(
-            self,
-            msg.sender,
-            tokenAmount,
-            tokenIndex
-        );
+        (dy, dyFee) = calculateWithdrawOneToken(self, msg.sender, tokenAmount, tokenIndex);
 
         require(dy >= minAmount, "dy < minAmount");
 
@@ -2282,13 +2263,7 @@ library SwapUtils {
         lpToken.burnFrom(msg.sender, tokenAmount);
         self.pooledTokens[tokenIndex].safeTransfer(msg.sender, dy);
 
-        emit RemoveLiquidityOne(
-            msg.sender,
-            tokenAmount,
-            totalSupply,
-            tokenIndex,
-            dy
-        );
+        emit RemoveLiquidityOne(msg.sender, tokenAmount, totalSupply, tokenIndex, dy);
 
         return dy;
     }
@@ -2308,18 +2283,10 @@ library SwapUtils {
         uint256[] memory amounts,
         uint256 maxBurnAmount
     ) public returns (uint256) {
-        require(
-            amounts.length == self.pooledTokens.length,
-            "Amounts should match pool tokens"
-        );
-        require(
-            maxBurnAmount <= self.lpToken.balanceOf(msg.sender) &&
-                maxBurnAmount != 0,
-            ">LP.balanceOf"
-        );
+        require(amounts.length == self.pooledTokens.length, "Amounts should match pool tokens");
+        require(maxBurnAmount <= self.lpToken.balanceOf(msg.sender) && maxBurnAmount != 0, ">LP.balanceOf");
 
-        RemoveLiquidityImbalanceInfo memory v =
-            RemoveLiquidityImbalanceInfo(0, 0, 0, 0);
+        RemoveLiquidityImbalanceInfo memory v = RemoveLiquidityImbalanceInfo(0, 0, 0, 0);
 
         uint256 tokenSupply = self.lpToken.totalSupply();
         uint256 feePerToken = _feePerToken(self);
@@ -2329,10 +2296,7 @@ library SwapUtils {
         v.preciseA = _getAPrecise(self);
         v.d0 = getD(_xp(self), v.preciseA);
         for (uint256 i = 0; i < self.pooledTokens.length; i++) {
-            balances1[i] = balances1[i].sub(
-                amounts[i],
-                "Cannot withdraw more than available"
-            );
+            balances1[i] = balances1[i].sub(amounts[i], "Cannot withdraw more than available");
         }
         v.d1 = getD(_xp(self, balances1), v.preciseA);
         uint256[] memory fees = new uint256[](self.pooledTokens.length);
@@ -2341,9 +2305,7 @@ library SwapUtils {
             uint256 idealBalance = v.d1.mul(self.balances[i]).div(v.d0);
             uint256 difference = idealBalance.difference(balances1[i]);
             fees[i] = feePerToken.mul(difference).div(FEE_DENOMINATOR);
-            self.balances[i] = balances1[i].sub(
-                fees[i].mul(self.adminFee).div(FEE_DENOMINATOR)
-            );
+            self.balances[i] = balances1[i].sub(fees[i].mul(self.adminFee).div(FEE_DENOMINATOR));
             balances1[i] = balances1[i].sub(fees[i]);
         }
 
@@ -2351,9 +2313,7 @@ library SwapUtils {
 
         uint256 tokenAmount = v.d0.sub(v.d2).mul(tokenSupply).div(v.d0);
         require(tokenAmount != 0, "Burnt amount cannot be zero");
-        tokenAmount = tokenAmount.add(1).mul(FEE_DENOMINATOR).div(
-            FEE_DENOMINATOR.sub(calculateCurrentWithdrawFee(self, msg.sender))
-        );
+        tokenAmount = tokenAmount.add(1).mul(FEE_DENOMINATOR).div(FEE_DENOMINATOR.sub(calculateCurrentWithdrawFee(self, msg.sender)));
 
         require(tokenAmount <= maxBurnAmount, "tokenAmount > maxBurnAmount");
 
@@ -2363,13 +2323,7 @@ library SwapUtils {
             self.pooledTokens[i].safeTransfer(msg.sender, amounts[i]);
         }
 
-        emit RemoveLiquidityImbalance(
-            msg.sender,
-            amounts,
-            fees,
-            v.d1,
-            tokenSupply.sub(tokenAmount)
-        );
+        emit RemoveLiquidityImbalance(msg.sender, amounts, fees, v.d1, tokenSupply.sub(tokenAmount));
 
         return tokenAmount;
     }
@@ -2382,8 +2336,7 @@ library SwapUtils {
     function withdrawAdminFees(Swap storage self, address to) external {
         for (uint256 i = 0; i < self.pooledTokens.length; i++) {
             IERC20 token = self.pooledTokens[i];
-            uint256 balance =
-                token.balanceOf(address(this)).sub(self.balances[i]);
+            uint256 balance = token.balanceOf(address(this)).sub(self.balances[i]);
             if (balance != 0) {
                 token.safeTransfer(to, balance);
                 emit CollectProtocolFee(address(token), balance);
@@ -2422,9 +2375,7 @@ library SwapUtils {
      * @param self Swap struct to update
      * @param newWithdrawFee new withdraw fee to be applied
      */
-    function setDefaultWithdrawFee(Swap storage self, uint256 newWithdrawFee)
-        external
-    {
+    function setDefaultWithdrawFee(Swap storage self, uint256 newWithdrawFee) external {
         require(newWithdrawFee <= MAX_WITHDRAW_FEE, "Fee is too high");
         self.defaultWithdrawFee = newWithdrawFee;
 
@@ -2444,32 +2395,17 @@ library SwapUtils {
         uint256 futureA_,
         uint256 futureTime_
     ) external {
-        require(
-            block.timestamp >= self.initialATime.add(1 days),
-            "Wait 1 day before starting ramp"
-        );
-        require(
-            futureTime_ >= block.timestamp.add(MIN_RAMP_TIME),
-            "Insufficient ramp time"
-        );
-        require(
-            futureA_ > 0 && futureA_ < MAX_A,
-            "futureA_ must be > 0 and < MAX_A"
-        );
+        require(block.timestamp >= self.initialATime.add(1 days), "Wait 1 day before starting ramp");
+        require(futureTime_ >= block.timestamp.add(MIN_RAMP_TIME), "Insufficient ramp time");
+        require(futureA_ > 0 && futureA_ < MAX_A, "futureA_ must be > 0 and < MAX_A");
 
         uint256 initialAPrecise = _getAPrecise(self);
         uint256 futureAPrecise = futureA_.mul(A_PRECISION);
 
         if (futureAPrecise < initialAPrecise) {
-            require(
-                futureAPrecise.mul(MAX_A_CHANGE) >= initialAPrecise,
-                "futureA_ is too small"
-            );
+            require(futureAPrecise.mul(MAX_A_CHANGE) >= initialAPrecise, "futureA_ is too small");
         } else {
-            require(
-                futureAPrecise <= initialAPrecise.mul(MAX_A_CHANGE),
-                "futureA_ is too large"
-            );
+            require(futureAPrecise <= initialAPrecise.mul(MAX_A_CHANGE), "futureA_ is too large");
         }
 
         self.initialA = initialAPrecise;
@@ -2477,12 +2413,7 @@ library SwapUtils {
         self.initialATime = block.timestamp;
         self.futureATime = futureTime_;
 
-        emit RampA(
-            initialAPrecise,
-            futureAPrecise,
-            block.timestamp,
-            futureTime_
-        );
+        emit RampA(initialAPrecise, futureAPrecise, block.timestamp, futureTime_);
     }
 
     /**
@@ -2500,5 +2431,560 @@ library SwapUtils {
         self.futureATime = block.timestamp;
 
         emit StopRampA(currentA, block.timestamp);
+    }
+}
+
+interface IStableSwapFactory {
+    event SwapCreated(IERC20[] pooledTokens, address indexed swap, uint256 length);
+    event SetFeeTo(address indexed feeTo);
+    event SetFeeToken(address indexed token);
+    event SetFeeAmount(uint256 indexed amount);
+
+    function feeTo() external view returns (address);
+
+    function feeToSetter() external view returns (address);
+
+    function allPools(uint256) external view returns (address pool);
+
+    function isPool(address) external view returns (bool);
+
+    function allPoolsLength() external view returns (uint256);
+
+    function isTimelock(address) external view returns (bool);
+
+    function createPool(
+        IERC20[] memory _pooledTokens,
+        uint8[] memory decimals,
+        string memory lpTokenName,
+        string memory lpTokenSymbol,
+        uint256 _a,
+        uint256 _fee,
+        uint256 _adminFee,
+        uint256 _withdrawFee,
+        uint256 delayTimeLock
+    ) external returns (address pool);
+
+    function setFeeTo(address) external;
+
+    function setFeeToSetter(address) external;
+
+    function setFeeToken(address _token) external;
+
+    function setFeeAmount(uint256 _token) external;
+}
+
+/**
+ * @title Swap - A StableSwap implementation in solidity.
+ * @notice This contract is responsible for custody of closely pegged assets (eg. group of stablecoins)
+ * and automatic market making system. Users become an LP (Liquidity Provider) by depositing their tokens
+ * in desired ratios for an exchange of the pool token that represents their share of the pool.
+ * Users can burn pool tokens and withdraw their share of token(s).
+ *
+ * Each time a swap between the pooled tokens happens, a set fee incurs which effectively gets
+ * distributed to the LPs.
+ *
+ * In case of emergencies, admin can pause additional deposits, swaps, or single-asset withdraws - which
+ * stops the ratio of the tokens in the pool from changing.
+ * Users can always withdraw their tokens via multi-asset withdraws.
+ *
+ * @dev Most of the logic is stored as a library `SwapUtils` for the sake of reducing contract's
+ * deployment size.
+ */
+contract Swap is OwnerPausable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    using SafeMath for uint256;
+    using MathUtils for uint256;
+    using SwapUtils for SwapUtils.Swap;
+
+    // Struct storing data responsible for automatic market maker functionalities. In order to
+    // access this data, this contract uses SwapUtils library. For more details, see SwapUtils.sol
+    SwapUtils.Swap public swapStorage;
+
+    // Maps token address to an index in the pool. Used to prevent duplicate tokens in the pool.
+    // getTokenIndex function also relies on this mapping to retrieve token index.
+    mapping(address => uint8) private tokenIndexes;
+    address public factory;
+    bool private _initialized = false;
+
+    /*** EVENTS ***/
+
+    // events replicated from SwapUtils to make the ABI easier for dumb
+    // clients
+    event TokenSwap(address indexed buyer, uint256 tokensSold, uint256 tokensBought, uint128 soldId, uint128 boughtId);
+    event AddLiquidity(address indexed provider, uint256[] tokenAmounts, uint256[] fees, uint256 invariant, uint256 lpTokenSupply);
+    event RemoveLiquidity(address indexed provider, uint256[] tokenAmounts, uint256 lpTokenSupply);
+    event RemoveLiquidityOne(address indexed provider, uint256 lpTokenAmount, uint256 lpTokenSupply, uint256 boughtId, uint256 tokensBought);
+    event RemoveLiquidityImbalance(address indexed provider, uint256[] tokenAmounts, uint256[] fees, uint256 invariant, uint256 lpTokenSupply);
+    event CollectProtocolFee(address token, uint256 amount);
+    event NewAdminFee(uint256 newAdminFee);
+    event NewSwapFee(uint256 newSwapFee);
+    event NewWithdrawFee(uint256 newWithdrawFee);
+    event RampA(uint256 oldA, uint256 newA, uint256 initialTime, uint256 futureTime);
+    event StopRampA(uint256 currentA, uint256 time);
+
+    constructor() public OwnerPausable() ReentrancyGuard() {}
+
+    /**
+     * @notice Deploys this Swap contract with given parameters as default
+     * values. This will also deploy a LPToken that represents users
+     * LP position. The owner of LPToken will be this contract - which means
+     * only this contract is allowed to mint new tokens.
+     *
+     * @param _pooledTokens an array of ERC20s this pool will accept
+     * @param decimals the decimals to use for each pooled token,
+     * eg 8 for WBTC. Cannot be larger than POOL_PRECISION_DECIMALS
+     * @param lpTokenName the long-form name of the token to be deployed
+     * @param lpTokenSymbol the short symbol for the token to be deployed
+     * @param _a the amplification coefficient * n * (n - 1). See the
+     * StableSwap paper for details
+     * @param _fee default swap fee to be initialized with
+     * @param _adminFee default adminFee to be initialized with
+     * @param _withdrawFee default withdrawFee to be initialized with
+     */
+    function initialize(
+        IERC20[] memory _pooledTokens,
+        uint8[] memory decimals,
+        string memory lpTokenName,
+        string memory lpTokenSymbol,
+        uint256 _a,
+        uint256 _fee,
+        uint256 _adminFee,
+        uint256 _withdrawFee,
+        address _factory
+    ) public {
+        require(_initialized == false, "Swap: Initialize must be false.");
+        // Check _pooledTokens and precisions parameter
+        require(_pooledTokens.length > 1, "_pooledTokens.length <= 1");
+        require(_pooledTokens.length <= 32, "_pooledTokens.length > 32");
+        require(_pooledTokens.length == decimals.length, "_pooledTokens decimals mismatch");
+
+        uint256[] memory precisionMultipliers = new uint256[](decimals.length);
+
+        for (uint8 i = 0; i < _pooledTokens.length; i++) {
+            if (i > 0) {
+                // Check if index is already used. Check if 0th element is a duplicate.
+                require(tokenIndexes[address(_pooledTokens[i])] == 0 && _pooledTokens[0] != _pooledTokens[i], "Duplicate tokens");
+            }
+            require(address(_pooledTokens[i]) != address(0), "The 0 address isn't an ERC-20");
+            require(decimals[i] <= SwapUtils.POOL_PRECISION_DECIMALS, "Token decimals exceeds max");
+            precisionMultipliers[i] = 10**uint256(SwapUtils.POOL_PRECISION_DECIMALS).sub(uint256(decimals[i]));
+            tokenIndexes[address(_pooledTokens[i])] = i;
+        }
+
+        // Check _a, _fee, _adminFee, _withdrawFee parameters
+        require(_a < SwapUtils.MAX_A, "_a exceeds maximum");
+        require(_fee <= SwapUtils.MAX_SWAP_FEE, "_fee exceeds maximum");
+        require(_adminFee <= SwapUtils.MAX_ADMIN_FEE, "_adminFee exceeds maximum");
+        require(_withdrawFee <= SwapUtils.MAX_WITHDRAW_FEE, "_withdrawFee exceeds maximum");
+
+        // Initialize swapStorage struct
+        swapStorage.lpToken = new LPToken(lpTokenName, lpTokenSymbol, SwapUtils.POOL_PRECISION_DECIMALS);
+        swapStorage.pooledTokens = _pooledTokens;
+        swapStorage.tokenPrecisionMultipliers = precisionMultipliers;
+        swapStorage.balances = new uint256[](_pooledTokens.length);
+        swapStorage.initialA = _a.mul(SwapUtils.A_PRECISION);
+        swapStorage.futureA = _a.mul(SwapUtils.A_PRECISION);
+        swapStorage.initialATime = 0;
+        swapStorage.futureATime = 0;
+        swapStorage.swapFee = _fee;
+        swapStorage.adminFee = _adminFee;
+        swapStorage.defaultWithdrawFee = _withdrawFee;
+
+        // Initialize variables related to guarding the initial deposits
+        factory = _factory;
+        _initialized = true;
+    }
+
+    /*** MODIFIERS ***/
+
+    /**
+     * @notice Modifier to check deadline against current timestamp
+     * @param deadline latest timestamp to accept this transaction
+     */
+    modifier deadlineCheck(uint256 deadline) {
+        require(block.timestamp <= deadline, "Deadline not met");
+        _;
+    }
+
+    /*** VIEW FUNCTIONS ***/
+
+    /**
+     * @notice Return A, the amplification coefficient * n * (n - 1)
+     * @dev See the StableSwap paper for details
+     * @return A parameter
+     */
+    function getA() external view returns (uint256) {
+        return swapStorage.getA();
+    }
+
+    /**
+     * @notice Return A in its raw precision form
+     * @dev See the StableSwap paper for details
+     * @return A parameter in its raw precision form
+     */
+    function getAPrecise() external view returns (uint256) {
+        return swapStorage.getAPrecise();
+    }
+
+    /**
+     * @notice Return address of the pooled token at given index. Reverts if tokenIndex is out of range.
+     * @param index the index of the token
+     * @return address of the token at given index
+     */
+    function getToken(uint8 index) public view returns (IERC20) {
+        require(index < swapStorage.pooledTokens.length, "Out of range");
+        return swapStorage.pooledTokens[index];
+    }
+
+    function getTokenLength() public view returns (uint256) {
+        return swapStorage.pooledTokens.length;
+    }
+
+    /**
+     * @notice Return the index of the given token address. Reverts if no matching
+     * token is found.
+     * @param tokenAddress address of the token
+     * @return the index of the given token address
+     */
+    function getTokenIndex(address tokenAddress) external view returns (uint8) {
+        uint8 index = tokenIndexes[tokenAddress];
+        require(address(getToken(index)) == tokenAddress, "Token does not exist");
+        return index;
+    }
+
+    /**
+     * @notice Return timestamp of last deposit of given address
+     * @return timestamp of the last deposit made by the given address
+     */
+    function getDepositTimestamp(address user) external view returns (uint256) {
+        return swapStorage.getDepositTimestamp(user);
+    }
+
+    /**
+     * @notice Return current balance of the pooled token at given index
+     * @param index the index of the token
+     * @return current balance of the pooled token at given index with token's native precision
+     */
+    function getTokenBalance(uint8 index) external view returns (uint256) {
+        require(index < swapStorage.pooledTokens.length, "Index out of range");
+        return swapStorage.balances[index];
+    }
+
+    /**
+     * @notice Get the virtual price, to help calculate profit
+     * @return the virtual price, scaled to the POOL_PRECISION_DECIMALS
+     */
+    function getVirtualPrice() external view returns (uint256) {
+        return swapStorage.getVirtualPrice();
+    }
+
+    /**
+     * @notice Calculate amount of tokens you receive on swap
+     * @param tokenIndexFrom the token the user wants to sell
+     * @param tokenIndexTo the token the user wants to buy
+     * @param dx the amount of tokens the user wants to sell. If the token charges
+     * a fee on transfers, use the amount that gets transferred after the fee.
+     * @return amount of tokens the user will receive
+     */
+    function calculateSwap(
+        uint8 tokenIndexFrom,
+        uint8 tokenIndexTo,
+        uint256 dx
+    ) external view returns (uint256) {
+        return swapStorage.calculateSwap(tokenIndexFrom, tokenIndexTo, dx);
+    }
+
+    /**
+     * @notice A simple method to calculate prices from deposits or
+     * withdrawals, excluding fees but including slippage. This is
+     * helpful as an input into the various "min" parameters on calls
+     * to fight front-running
+     *
+     * @dev This shouldn't be used outside frontends for user estimates.
+     *
+     * @param account address that is depositing or withdrawing tokens
+     * @param amounts an array of token amounts to deposit or withdrawal,
+     * corresponding to pooledTokens. The amount should be in each
+     * pooled token's native precision. If a token charges a fee on transfers,
+     * use the amount that gets transferred after the fee.
+     * @param deposit whether this is a deposit or a withdrawal
+     * @return token amount the user will receive
+     */
+    function calculateTokenAmount(
+        address account,
+        uint256[] calldata amounts,
+        bool deposit
+    ) external view returns (uint256) {
+        return swapStorage.calculateTokenAmount(account, amounts, deposit);
+    }
+
+    /**
+     * @notice A simple method to calculate amount of each underlying
+     * tokens that is returned upon burning given amount of LP tokens
+     * @param account the address that is withdrawing tokens
+     * @param amount the amount of LP tokens that would be burned on withdrawal
+     * @return array of token balances that the user will receive
+     */
+    function calculateRemoveLiquidity(address account, uint256 amount) external view returns (uint256[] memory) {
+        return swapStorage.calculateRemoveLiquidity(account, amount);
+    }
+
+    /**
+     * @notice Calculate the amount of underlying token available to withdraw
+     * when withdrawing via only single token
+     * @param account the address that is withdrawing tokens
+     * @param tokenAmount the amount of LP token to burn
+     * @param tokenIndex index of which token will be withdrawn
+     * @return availableTokenAmount calculated amount of underlying token
+     * available to withdraw
+     */
+    function calculateRemoveLiquidityOneToken(
+        address account,
+        uint256 tokenAmount,
+        uint8 tokenIndex
+    ) external view returns (uint256 availableTokenAmount) {
+        (availableTokenAmount, ) = swapStorage.calculateWithdrawOneToken(account, tokenAmount, tokenIndex);
+    }
+
+    /**
+     * @notice Calculate the fee that is applied when the given user withdraws. The withdraw fee
+     * decays linearly over period of 4 weeks. For example, depositing and withdrawing right away
+     * will charge you the full amount of withdraw fee. But withdrawing after 4 weeks will charge you
+     * no additional fees.
+     * @dev returned value should be divided by FEE_DENOMINATOR to convert to correct decimals
+     * @param user address you want to calculate withdraw fee of
+     * @return current withdraw fee of the user
+     */
+    function calculateCurrentWithdrawFee(address user) external view returns (uint256) {
+        return swapStorage.calculateCurrentWithdrawFee(user);
+    }
+
+    /**
+     * @notice This function reads the accumulated amount of admin fees of the token with given index
+     * @param index Index of the pooled token
+     * @return admin's token balance in the token's precision
+     */
+    function getAdminBalance(uint256 index) external view returns (uint256) {
+        return swapStorage.getAdminBalance(index);
+    }
+
+    function getAdminBalances() external view returns (uint256[] memory adminBalances) {
+        uint256 length = getTokenLength();
+        adminBalances = new uint256[](length);
+        for (uint256 i = 0; i < length; i++) {
+            adminBalances[i] = swapStorage.getAdminBalance(i);
+        }
+    }
+
+    /*** STATE MODIFYING FUNCTIONS ***/
+
+    /**
+     * @notice Swap two tokens using this pool
+     * @param tokenIndexFrom the token the user wants to swap from
+     * @param tokenIndexTo the token the user wants to swap to
+     * @param dx the amount of tokens the user wants to swap from
+     * @param minDy the min amount the user would like to receive, or revert.
+     * @param deadline latest timestamp to accept this transaction
+     */
+    function swap(
+        uint8 tokenIndexFrom,
+        uint8 tokenIndexTo,
+        uint256 dx,
+        uint256 minDy,
+        uint256 deadline
+    ) external nonReentrant whenNotPaused deadlineCheck(deadline) returns (uint256) {
+        return swapStorage.swap(tokenIndexFrom, tokenIndexTo, dx, minDy);
+    }
+
+    /**
+     * @notice Add liquidity to the pool with given amounts.
+     * @param amounts the amounts of each token to add, in their native precision
+     * @param minToMint the minimum LP tokens adding this amount of liquidity
+     * should mint, otherwise revert. Handy for front-running mitigation
+     * @param deadline latest timestamp to accept this transaction
+     * @return amount of LP token user minted and received
+     */
+    function addLiquidity(
+        uint256[] calldata amounts,
+        uint256 minToMint,
+        uint256 deadline
+    ) external nonReentrant whenNotPaused deadlineCheck(deadline) returns (uint256) {
+        return swapStorage.addLiquidity(amounts, minToMint);
+    }
+
+    /**
+     * @notice Burn LP tokens to remove liquidity from the pool. Withdraw fee that decays linearly
+     * over period of 4 weeks since last deposit will apply.
+     * @dev Liquidity can always be removed, even when the pool is paused.
+     * @param amount the amount of LP tokens to burn
+     * @param minAmounts the minimum amounts of each token in the pool
+     *        acceptable for this burn. Useful as a front-running mitigation
+     * @param deadline latest timestamp to accept this transaction
+     * @return amounts of tokens user received
+     */
+    function removeLiquidity(
+        uint256 amount,
+        uint256[] calldata minAmounts,
+        uint256 deadline
+    ) external nonReentrant deadlineCheck(deadline) returns (uint256[] memory) {
+        return swapStorage.removeLiquidity(amount, minAmounts);
+    }
+
+    /**
+     * @notice Remove liquidity from the pool all in one token. Withdraw fee that decays linearly
+     * over period of 4 weeks since last deposit will apply.
+     * @param tokenAmount the amount of the token you want to receive
+     * @param tokenIndex the index of the token you want to receive
+     * @param minAmount the minimum amount to withdraw, otherwise revert
+     * @param deadline latest timestamp to accept this transaction
+     * @return amount of chosen token user received
+     */
+    function removeLiquidityOneToken(
+        uint256 tokenAmount,
+        uint8 tokenIndex,
+        uint256 minAmount,
+        uint256 deadline
+    ) external nonReentrant whenNotPaused deadlineCheck(deadline) returns (uint256) {
+        return swapStorage.removeLiquidityOneToken(tokenAmount, tokenIndex, minAmount);
+    }
+
+    /**
+     * @notice Remove liquidity from the pool, weighted differently than the
+     * pool's current balances. Withdraw fee that decays linearly
+     * over period of 4 weeks since last deposit will apply.
+     * @param amounts how much of each token to withdraw
+     * @param maxBurnAmount the max LP token provider is willing to pay to
+     * remove liquidity. Useful as a front-running mitigation.
+     * @param deadline latest timestamp to accept this transaction
+     * @return amount of LP tokens burned
+     */
+    function removeLiquidityImbalance(
+        uint256[] calldata amounts,
+        uint256 maxBurnAmount,
+        uint256 deadline
+    ) external nonReentrant whenNotPaused deadlineCheck(deadline) returns (uint256) {
+        return swapStorage.removeLiquidityImbalance(amounts, maxBurnAmount);
+    }
+
+    /*** ADMIN FUNCTIONS ***/
+
+    /**
+     * @notice Updates the user withdraw fee. This function can only be called by
+     * the pool token. Should be used to update the withdraw fee on transfer of pool tokens.
+     * Transferring your pool token will reset the 4 weeks period. If the recipient is already
+     * holding some pool tokens, the withdraw fee will be discounted in respective amounts.
+     * @param recipient address of the recipient of pool token
+     * @param transferAmount amount of pool token to transfer
+     */
+    function updateUserWithdrawFee(address recipient, uint256 transferAmount) external {
+        require(msg.sender == address(swapStorage.lpToken), "Only callable by pool token");
+        swapStorage.updateUserWithdrawFee(recipient, transferAmount);
+    }
+
+    /**
+     * @notice Withdraw all admin fees to the fee collector
+     */
+    function withdrawAdminFees() external {
+        address feeTo = IStableSwapFactory(factory).feeTo();
+        if (feeTo != address(0)) {
+            swapStorage.withdrawAdminFees(feeTo);
+        }
+    }
+
+    /**
+     * @notice Update the admin fee. Admin fee takes portion of the swap fee.
+     * @param newAdminFee new admin fee to be applied on future transactions
+     */
+    function setAdminFee(uint256 newAdminFee) external onlyOwner {
+        swapStorage.setAdminFee(newAdminFee);
+    }
+
+    /**
+     * @notice Update the swap fee to be applied on swaps
+     * @param newSwapFee new swap fee to be applied on future transactions
+     */
+    function setSwapFee(uint256 newSwapFee) external onlyOwner {
+        swapStorage.setSwapFee(newSwapFee);
+    }
+
+    /**
+     * @notice Update the withdraw fee. This fee decays linearly over 4 weeks since
+     * user's last deposit.
+     * @param newWithdrawFee new withdraw fee to be applied on future deposits
+     */
+    function setDefaultWithdrawFee(uint256 newWithdrawFee) external onlyOwner {
+        swapStorage.setDefaultWithdrawFee(newWithdrawFee);
+    }
+
+    function setFactory(address _factory) external onlyOwner {
+        factory = _factory;
+    }
+
+    function getPoolTokens() external view returns (IERC20[] memory) {
+        return swapStorage.pooledTokens;
+    }
+
+    function getTokenPrecisionMultipliers() external view returns (uint256[] memory) {
+        return swapStorage.tokenPrecisionMultipliers;
+    }
+
+    function getBalances() external view returns (uint256[] memory) {
+        return swapStorage.balances;
+    }
+
+    function getWithdrawFeeMultiplier(address user) external view returns (uint256) {
+        return swapStorage.withdrawFeeMultiplier[user];
+    }
+
+    /**
+     * @notice Start ramping up or down A parameter towards given futureA and futureTime
+     * Checks if the change is too rapid, and commits the new A value only when it falls under
+     * the limit range.
+     * @param futureA the new A to ramp towards
+     * @param futureTime timestamp when the new A should be reached
+     */
+    function rampA(uint256 futureA, uint256 futureTime) external onlyOwner {
+        swapStorage.rampA(futureA, futureTime);
+    }
+
+    /**
+     * @notice Stop ramping A immediately. Reverts if ramp A is already stopped.
+     */
+    function stopRampA() external onlyOwner {
+        swapStorage.stopRampA();
+    }
+}
+
+interface ISwapCreator {
+    function create(
+        IERC20[] memory _pooledTokens,
+        uint8[] memory decimals,
+        string memory lpTokenName,
+        string memory lpTokenSymbol,
+        uint256 _a,
+        uint256 _fee,
+        uint256 _adminFee,
+        uint256 _withdrawFee,
+        address timeLock
+    ) external returns (address);
+}
+
+contract SwapCreator is ISwapCreator {
+    function create(
+        IERC20[] memory _pooledTokens,
+        uint8[] memory decimals,
+        string memory lpTokenName,
+        string memory lpTokenSymbol,
+        uint256 _a,
+        uint256 _fee,
+        uint256 _adminFee,
+        uint256 _withdrawFee,
+        address timeLock
+    ) external override returns (address) {
+        Swap swap = new Swap();
+        swap.initialize(_pooledTokens, decimals, lpTokenName, lpTokenSymbol, _a, _fee, _adminFee, _withdrawFee, msg.sender);
+        swap.transferOwnership(timeLock);
+
+        return address(swap);
     }
 }
